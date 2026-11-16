@@ -18,6 +18,8 @@ export interface Balance {
   startResources: Resources;
   tankBase: number;
   stopActions: number;
+  /** Запас здоровья пассажира: столько ранений до гибели. */
+  passengerHp: number;
   foodEveryLegs: number;
   startPassengers: number;
   ticketMin: number;
@@ -150,6 +152,8 @@ export interface WeaponStats {
   accuracy: number;
   /** Урон по своему корпусу за залп (таран). */
   selfDamage?: number;
+  /** Шанс ранить человека у борта при попадании (вместо общего crewWoundChance) — дробь бьёт по людям. */
+  crewChance?: number;
   effects?: WeaponEffect[];
 }
 

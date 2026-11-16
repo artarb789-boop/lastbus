@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activeWeapons, applyCommand, coveredSeats, fuelCost, repairCost, tankMax } from "../core";
-import { harmRandom } from "../core/crew";
+import { harm, harmRandom } from "../core/crew";
 import { makeItem } from "../core/equipment";
 import { content, drive, quietContent, runOn } from "./helpers";
 
@@ -97,14 +97,18 @@ describe("пассивные эффекты и вес", () => {
 });
 
 describe("посты и броня", () => {
-  it("оружие стреляет, только если пост занят здоровым", () => {
+  it("оружие стреляет, пока на посту кто-то жив — раненый тоже", () => {
     const s = runOn(10, ["start", "village", "boss"]);
     const post = s.bus.seats.find((x) => x.slot === "roof")!;
     s.passengers.forEach((p, i) => (p.seat = `r${i}c1`));
     expect(activeWeapons(s, c)).toHaveLength(0);
-    s.passengers[0]!.seat = post.id;
+    const gunner = s.passengers[0]!;
+    gunner.seat = post.id;
     expect(activeWeapons(s, c)).toHaveLength(1);
-    s.passengers[0]!.status = "wounded";
+    harm(s, gunner, "test");
+    expect(gunner.hp).toBe(gunner.maxHp - 1);
+    expect(activeWeapons(s, c)).toHaveLength(1);
+    while (s.passengers.includes(gunner)) harm(s, gunner, "test");
     expect(activeWeapons(s, c)).toHaveLength(0);
   });
 

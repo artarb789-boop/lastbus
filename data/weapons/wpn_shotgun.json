@@ -20,12 +20,14 @@
   "weapon": {
     "ranges": [
       "contact",
-      "near"
+      "near",
+      "mid"
     ],
     "charge": 14,
     "shots": 1,
     "damage": 3,
     "ammoPerVolley": 0,
-    "accuracy": 0.85
+    "accuracy": 0.85,
+    "crewChance": 0.75
   }
 }

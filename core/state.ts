@@ -66,15 +66,22 @@ export interface Passenger {
   id: string;
   /** Индекс набора деталей внешности. Только для отображения. */
   look: number;
+  /** «wounded», пока здоровье не полное. Раненый работает как здоровый — выбывает только погибший. */
   status: HealthStatus;
+  hp: number;
+  maxHp: number;
   seat: string;
   ticket: Ticket;
+  /** Пропустил последнюю еду. Ещё один пропуск подряд — ранение. */
+  hungry?: boolean;
 }
 
 export interface Driver {
   /** id из data/drivers. */
   id: string;
   status: HealthStatus;
+  /** Пропустил последнюю еду. */
+  hungry?: boolean;
 }
 
 // ---------- Снаряжение ----------

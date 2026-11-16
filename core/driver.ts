@@ -20,9 +20,8 @@ export function driverEscapeMult(state: RunState, content: Content): number {
   return perks(state, content, "escapeMult").reduce((a, p) => a * p.value, 1);
 }
 
-/** Бонус к уклонению действует, пока водитель здоров. */
+/** Бонус водителя к уклонению. */
 export function driverEvasionBonus(state: RunState, content: Content): number {
-  if (state.driver.status !== "healthy") return 0;
   return perks(state, content, "evasionBonus").reduce((a, p) => a + p.value, 0);
 }
 

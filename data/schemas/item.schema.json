@@ -129,6 +129,12 @@
               }
             }
           }
+        },
+        "crewChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Шанс ранить человека у борта при попадании"
         }
       }
     },

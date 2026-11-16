@@ -1,4 +1,4 @@
-import { capacity, driverDef, isLeaking, RESOURCE_KINDS, tankMax } from "../../core";
+import { capacity, driverDef, foodForecast, isLeaking, RESOURCE_KINDS, tankMax } from "../../core";
 import { artImg } from "../art/images";
 import { isMuted } from "../audio/sound";
 import type { Store } from "../store";
@@ -7,9 +7,19 @@ import { bar, esc, RES, SYSTEM, t, uiAttr } from "./text";
 export function renderHud(store: Store): string {
   const { state, content } = store;
   const r = state.resources;
+  const food = foodForecast(state, content);
   const res = RESOURCE_KINDS.map((k) => {
-    const value = k === "fuel" ? `${r.fuel}/${tankMax(state, content)}` : String(r[k]);
-    return `<span class="res" title="${RES[k].label}">${artImg(`resources/${k}.png`, 2, "res-icon", RES[k].label) || RES[k].icon} ${value}</span>`;
+    let value = k === "fuel" ? `${r.fuel}/${tankMax(state, content)}` : String(r[k]);
+    let title = RES[k].label;
+    let cls = "";
+    if (k === "food") {
+      // Еда: сколько нужно на следующий приём и когда он.
+      value += `<span class="muted">/${food.need}</span>`;
+      title = `Еда. Следующий приём через ${food.legs} перег.: нужно ${food.need}, есть ${r.food}.` +
+        (food.short > 0 ? ` Не хватит ${food.short} — они будут голодать, а голодные с прошлого раза получат ранение.` : "");
+      if (food.short > 0) cls = food.legs === 1 ? "bad" : "warn";
+    }
+    return `<span class="res ${cls}" title="${esc(title)}">${artImg(`resources/${k}.png`, 2, "res-icon", RES[k].label) || RES[k].icon} ${value}</span>`;
   }).join("");
 
   const sys = (name: string, hp: number, max: number, extra = "") =>
@@ -34,6 +44,8 @@ export function renderHud(store: Store): string {
             : `встреч ${state.nemesis.meetings}/${content.balance.nemesis.meetColumns.length}, ур. ${state.nemesis.level}`
         }</span>
         <span>Пассажиры: ${state.passengers.length}/${capacity(state)}</span>
+        ${food.hungry > 0 ? `<span class="warn" title="Пропустили еду. Ещё один пропуск подряд — ранение.">🍽 голодают: ${food.hungry}</span>` : ""}
+        ${food.short > 0 ? `<span class="${food.legs === 1 ? "bad-text" : "warn"}">еды не хватит через ${food.legs} перег. (−${food.short})</span>` : ""}
         <span>Перегонов: ${state.legs}</span>
         <span class="muted">seed ${state.seed}</span>
         <button title="Звук" ${uiAttr("toggleSound")}>${isMuted() ? "🔇 Звук выкл." : "🔊 Звук"}</button>

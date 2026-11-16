@@ -73,17 +73,17 @@ export function hasWorkingTag(state: RunState, content: Content, tag: string): b
 // ---------- Посты и броня ----------
 
 function healthyAt(state: RunState, seatId: string): boolean {
-  return state.passengers.some((p) => p.seat === seatId && p.status === "healthy");
+  return state.passengers.some((p) => p.seat === seatId);
 }
 
 /**
- * Оружие стреляет, если оно цело и пост при нём занят здоровым пассажиром.
+ * Оружие стреляет, если оно цело и на посту есть кто-то живой (раненые тоже стреляют).
  * Носовое оружие (таран, шипы) работает от водителя.
  */
 export function activeWeapons(state: RunState, content: Content): Installed[] {
   return working(state, content).filter((x) => {
     if (x.def.kind !== "weapon") return false;
-    if (x.slot.kind === "front") return state.driver.status === "healthy";
+    if (x.slot.kind === "front") return true;
     const post = state.bus.seats.find((s) => s.role === "weapon" && s.slot === x.slot.id);
     return post !== undefined && healthyAt(state, post.id);
   });

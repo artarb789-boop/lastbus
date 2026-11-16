@@ -169,7 +169,7 @@ function mechanicRow(store: Store, c: CombatState): string {
   const { state, content } = store;
   const seat = state.bus.seats.find((x) => x.role === "mechanic");
   const mech = seat ? occupant(state, seat.id) : undefined;
-  const working = mech?.status === "healthy";
+  const working = mech !== undefined;
   const every = content.balance.combat.mechanicRepairTicks;
   const btn = (focus: "systems" | "weapons", label: string) =>
     `<button class="${c.mechanicFocus === focus ? "on" : ""}" ${cmdAttr({ type: "setMechanicFocus", focus })}>${label}</button>`;

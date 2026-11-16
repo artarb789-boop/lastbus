@@ -14,7 +14,7 @@ export { newRun, replay, DEFAULT_BUS, type RunOptions } from "./run";
 export { DEFAULT_DRIVER, driverDef } from "./driver";
 export { isFinalMeeting } from "./nemesis";
 export { fuelCost } from "./bus";
-export { fareFor, freeSeats, capacity, seatById, occupant, healthyPassengers, navigatorManned } from "./crew";
+export { fareFor, foodForecast, freeSeats, capacity, seatById, occupant, healthyPassengers, navigatorManned } from "./crew";
 export {
   activeWeapons,
   coveredSeats,

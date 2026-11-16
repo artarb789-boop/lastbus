@@ -4,7 +4,7 @@
  * Всё детерминировано: случайность только из state.rng.
  */
 import type { Content, EnemyDef, EnemyPhaseEffect, RangeBand, WeaponEffect } from "../content";
-import { harm, hurtDriver, occupant } from "../crew";
+import { harm, healOne, hurtDriver, occupant } from "../crew";
 import { coveredSeats, itemDef, working } from "../equipment";
 import { log } from "../log";
 import { chance, pick } from "../rng";
@@ -125,7 +125,20 @@ export function leadEnemy(combat: CombatState): EnemyState {
 function seatHealthy(state: RunState, seatId: string | undefined): boolean {
   if (!seatId) return false;
   const p = occupant(state, seatId);
-  return p !== undefined && p.status === "healthy";
+  return p !== undefined; // раненые тоже работают
+}
+
+function seatHungry(state: RunState, seatId: string | undefined): boolean {
+  if (!seatId) return false;
+  return occupant(state, seatId)?.hungry === true;
+}
+
+/** Голоден ли тот, кто работает с оружием в слоте (на носу — водитель). */
+export function gunnerHungry(state: RunState, slotId: string): boolean {
+  const slot = state.bus.slots.find((s) => s.id === slotId);
+  if (slot?.kind === "front") return state.driver.hungry === true;
+  const post = state.bus.seats.find((s) => s.role === "weapon" && s.slot === slotId);
+  return seatHungry(state, post?.id);
 }
 
 function roleSeat(state: RunState, role: string): string | undefined {
@@ -138,7 +151,8 @@ export function playerEvasion(state: RunState, content: Content): number {
   if (state.systems.engine.hp > 0) ev += e.engine;
   if (state.systems.wheels.hp > 0) ev += e.wheels;
   if (seatHealthy(state, roleSeat(state, "navigator"))) ev += e.navigator;
-  if (state.driver.status === "healthy" && state.systems.cabin.hp > 0) ev += e.driver;
+  // Голодный водитель рулит хуже: без бонуса водителя.
+  if (!state.driver.hungry && state.systems.cabin.hp > 0) ev += e.driver;
   return ev + (state.bus.evasionBonus ?? 0) + driverEvasionBonus(state, content);
 }
 
@@ -165,7 +179,7 @@ const DIR: Record<Maneuver, number> = { approach: -1, hold: 0, retreat: 1 };
 /** Работает ли пост при оружии игрока: носовое — от водителя, остальное — от пассажира на посту. */
 export function weaponManned(state: RunState, slotId: string): boolean {
   const slot = state.bus.slots.find((s) => s.id === slotId);
-  if (slot?.kind === "front") return state.driver.status === "healthy";
+  if (slot?.kind === "front") return true; // водитель за рулём, пока жив
   const post = state.bus.seats.find((s) => s.role === "weapon" && s.slot === slotId);
   return seatHealthy(state, post?.id);
 }
@@ -190,7 +204,7 @@ function hitEnemy(_content: Content, e: EnemyState, target: TargetRef, dmg: numb
 }
 
 /** Попадание по автобусу игрока: броня борта, затем корпус и цель, затем люди у борта. */
-function hitPlayer(state: RunState, content: Content, target: TargetRef, dmg: number, armored: boolean): void {
+function hitPlayer(state: RunState, content: Content, target: TargetRef, dmg: number, armored: boolean, crewChance?: number): void {
   const b = content.balance.combat;
   let d = dmg;
   const side: "left" | "right" = pick(state.rng, ["left", "right"] as const);
@@ -226,7 +240,7 @@ function hitPlayer(state: RunState, content: Content, target: TargetRef, dmg: nu
   }
 
   // Люди у этого борта, не закрытые бронёй.
-  if (chance(state.rng, b.crewWoundChance)) {
+  if (chance(state.rng, crewChance ?? b.crewWoundChance)) {
     const covered = coveredSeats(state, content);
     const exposed = state.passengers.filter((p) => {
       const seat = state.bus.seats.find((s) => s.id === p.seat);
@@ -323,20 +337,22 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
 
   // 5. Механик и медик на постах.
   if (seatHealthy(state, roleSeat(state, "mechanic"))) {
-    combat.mechanicTimer++;
+    // Голодный работает вполсилы.
+    if (!seatHungry(state, roleSeat(state, "mechanic")) || combat.tick % 2 === 0) combat.mechanicTimer++;
     if (combat.mechanicTimer >= b.mechanicRepairTicks) {
       combat.mechanicTimer = 0;
       mechanicCombatRepair(state, content, combat.mechanicFocus);
     }
   }
   if (seatHealthy(state, roleSeat(state, "medic"))) {
-    combat.medicTimer++;
+    if (!seatHungry(state, roleSeat(state, "medic")) || combat.tick % 2 === 0) combat.medicTimer++;
     if (combat.medicTimer >= b.medicHealTicks) {
       combat.medicTimer = 0;
-      const wounded = state.passengers.find((p) => p.status === "wounded");
+      // Самого тяжёлого — на 1.
+      const wounded = state.passengers.filter((p) => p.hp < p.maxHp).sort((a, b) => a.hp - b.hp)[0];
       if (wounded) {
-        wounded.status = "healthy";
-        log(state, `medic healed ${wounded.id}`);
+        healOne(wounded);
+        log(state, `medic healed ${wounded.id} +1`);
       }
     }
   }
@@ -372,6 +388,8 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
       foe = next;
     }
     const stats = itemDef(content, inst).weapon!;
+    // Голодный стрелок заряжает вдвое медленнее.
+    if (gunnerHungry(state, w.slotId) && combat.tick % 2 === 1) continue;
     w.charge = Math.min(stats.charge, w.charge + 1);
     if (w.charge < stats.charge || !stats.ranges.includes(band) || state.resources.ammo < stats.ammoPerVolley) continue;
 
@@ -408,7 +426,7 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
       for (let k = 0; k < stats.shots; k++) {
         if (chance(state.rng, p)) {
           hits++;
-          hitPlayer(state, content, w.target, stats.damage, true);
+          hitPlayer(state, content, w.target, stats.damage, true, stats.crewChance);
         }
       }
       if (hits > 0) applyEffects(combat.status, w.target, stats.effects);

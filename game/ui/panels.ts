@@ -4,6 +4,7 @@ import {
   eventDef,
   findEdge,
   findNode,
+  foodForecast,
   fuelCost,
   healthyPassengers,
   RESOURCE_KINDS,
@@ -102,6 +103,15 @@ export function renderDriverPick(store: Store): string {
     </section>`;
 }
 
+/** Предупреждение о еде перед выбором дороги. */
+function foodWarning(store: Store): string {
+  const { state, content } = store;
+  const f = foodForecast(state, content);
+  if (f.short === 0) return "";
+  const when = f.legs === 1 ? "на этом перегоне" : `через ${f.legs} перегона`;
+  return `<p class="warn">🥫 Еды не хватит ${when}: нужно ${f.need}, есть ${state.resources.food}. ${f.short} чел. будут голодать, а кто голодал и в прошлый раз — получит ранение. Еду можно купить в магазине 🛒 на перегоне или найти обыском.</p>`;
+}
+
 export function renderPanel(store: Store): string {
   switch (store.state.phase.type) {
     case "route":
@@ -145,6 +155,7 @@ function routePanel(store: Store): string {
   return `
     <section class="panel">
       <h2>Куда едем?</h2>
+      ${foodWarning(store)}
       <p>Нажмите на подсвеченный узел на карте. Рядом с дорогой — её тип и расход топлива, 🛒 — магазин по пути, ⚑ — туда едет соперник.</p>
       <p class="muted">Посадку можно менять и сейчас: выберите пассажира в салоне, затем место.</p>
     </section>`;
@@ -159,7 +170,7 @@ function stopPanel(store: Store): string {
   const garage = node.kind === "garage";
   const left = state.phase.actionsLeft;
 
-  const team = ui.scavengeTeam.filter((id) => state.passengers.some((p) => p.id === id && p.status === "healthy"));
+  const team = ui.scavengeTeam.filter((id) => state.passengers.some((p) => p.id === id));
   const healthy = healthyPassengers(state);
   const teamPick = healthy
     .map((p) => {

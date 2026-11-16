@@ -214,3 +214,35 @@ function lastFreeChoice(s: ReturnType<typeof runOn>): number {
   const ev = content.events.find((e) => e.id === id)!;
   return ev.choices.findIndex((ch) => !ch.requires);
 }
+
+describe("голод", () => {
+  it("первый пропуск еды — только «голоден», второй подряд — ранение, еда снимает голод", async () => {
+    const { feedIfDue } = await import("../core/crew");
+    const s = runOn(1, ["start", "village", "boss"]);
+    const every = c.balance.foodEveryLegs;
+    s.legs = every;
+    s.resources.food = 0;
+    feedIfDue(s, c);
+    expect(s.passengers.every((p) => p.hungry && p.status === "healthy")).toBe(true);
+    expect(s.driver.hungry).toBe(true);
+    expect(s.driver.status).toBe("healthy");
+    feedIfDue(s, c);
+    expect(s.passengers.every((p) => p.status === "wounded")).toBe(true);
+    expect(s.driver.status).toBe("wounded");
+    s.resources.food = 99;
+    feedIfDue(s, c);
+    expect(s.passengers.every((p) => !p.hungry)).toBe(true);
+    expect(s.driver.hungry).toBe(false);
+  });
+
+  it("при нехватке еды едят по порядку, голодают остальные", async () => {
+    const { feedIfDue } = await import("../core/crew");
+    const s = runOn(2, ["start", "village", "boss"]);
+    s.legs = c.balance.foodEveryLegs;
+    s.resources.food = 2; // водитель и первый пассажир
+    feedIfDue(s, c);
+    expect(s.resources.food).toBe(0);
+    expect(s.passengers[0]!.hungry).toBe(false);
+    expect(s.passengers.slice(1).every((p) => p.hungry)).toBe(true);
+  });
+});

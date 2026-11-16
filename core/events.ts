@@ -3,7 +3,7 @@
  * Новый тип условия или эффекта добавляется сюда, в content.ts и в event.schema.json.
  */
 import type { ChoiceRequirement, Content, EventChoice, EventCondition, EventDef, EventEffect, EventKind } from "./content";
-import { boardPassengers, harmRandom, healthyPassengers } from "./crew";
+import { boardPassengers, harmRandom, healFull, healthyPassengers } from "./crew";
 import { damageRandomItems, hasWorkingTag, itemsOfKinds, makeItem, tankMax } from "./equipment";
 import { log } from "./log";
 import { chance, pick, weighted } from "./rng";
@@ -107,8 +107,8 @@ function applyEffect(state: RunState, content: Content, eff: EventEffect, then: 
       }
       for (const p of state.passengers) {
         if (left <= 0) break;
-        if (p.status === "wounded") {
-          p.status = "healthy";
+        if (p.hp < p.maxHp) {
+          healFull(p);
           left--;
         }
       }

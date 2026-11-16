@@ -1,8 +1,8 @@
 {
   "startResources": {
     "fuel": 60,
-    "food": 8,
-    "parts": 4,
+    "food": 5,
+    "parts": 6,
     "ammo": 10,
     "medkits": 2,
     "tokens": 6
@@ -11,6 +11,7 @@
   "stopActions": 1,
   "foodEveryLegs": 2,
   "startPassengers": 3,
+  "passengerHp": 3,
   "ticketMin": 1,
   "ticketMax": 5,
   "farePerStop": 1,

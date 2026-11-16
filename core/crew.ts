@@ -61,6 +61,8 @@ export function boardPassengers(state: RunState, content: Content, count: number
       id: `p${state.nextPassengerId++}`,
       look: int(state.rng, 0, b.lookVariants - 1),
       status: "healthy",
+      hp: b.passengerHp,
+      maxHp: b.passengerHp,
       seat: (seats[k] as SeatDef).id,
       ticket: { stopsTotal: stops, stopsLeft: stops },
     };
@@ -116,16 +118,29 @@ function removePassenger(state: RunState, passengerId: string): void {
 
 // ---------- Ранения ----------
 
-/** Здоровый получает ранение, раненый погибает. */
+/** Ранение отнимает 1 здоровья; на нуле пассажир погибает. Раненый продолжает работать. */
 export function harm(state: RunState, p: Passenger, cause: string): void {
-  if (p.status === "healthy") {
+  p.hp -= 1;
+  if (p.hp > 0) {
     p.status = "wounded";
-    log(state, `${p.id} wounded (${cause})`);
+    log(state, `${p.id} wounded (${cause}), hp ${p.hp}/${p.maxHp}`);
   } else {
     removePassenger(state, p.id);
     state.stats.died += 1;
     log(state, `${p.id} died (${cause})`);
   }
+}
+
+/** Вылечить полностью. */
+export function healFull(p: Passenger): void {
+  p.hp = p.maxHp;
+  p.status = "healthy";
+}
+
+/** Вылечить на 1 (медик в бою). */
+export function healOne(p: Passenger): void {
+  p.hp = Math.min(p.maxHp, p.hp + 1);
+  p.status = p.hp >= p.maxHp ? "healthy" : "wounded";
 }
 
 /**
@@ -153,23 +168,47 @@ export function harmRandom(state: RunState, content: Content, rng: RngState, hit
 
 // ---------- Еда ----------
 
-/** Раз в foodEveryLegs перегонов каждый (включая водителя) съедает 1 еду. */
+/**
+ * Раз в foodEveryLegs перегонов каждый (включая водителя) съедает 1 еду.
+ * Не хватило — человек голодает: в первый раз только отметка «голоден»,
+ * при втором пропуске подряд — ранение, при третьем — гибель. Любая еда снимает голод.
+ */
 export function feedIfDue(state: RunState, content: Content): void {
   if (state.legs % content.balance.foodEveryLegs !== 0) return;
-  const need = state.passengers.length + 1;
-  if (state.resources.food >= need) {
-    state.resources.food -= need;
-    return;
-  }
   let food = state.resources.food;
-  state.resources.food = 0;
   // Водитель ест первым.
-  if (food > 0) food -= 1;
-  else hurtDriver(state, "hunger");
+  if (food > 0) {
+    food -= 1;
+    state.driver.hungry = false;
+  } else if (!state.driver.hungry) {
+    state.driver.hungry = true;
+    log(state, "driver hungry");
+  } else {
+    hurtDriver(state, "hunger");
+  }
   // Кормим в порядке списка, остальные голодают.
-  const unfed = state.passengers.slice(Math.max(0, food));
-  log(state, `not enough food: ${unfed.length} hungry`);
-  for (const p of unfed) harm(state, p, "hunger");
+  const unfed: string[] = [];
+  for (const p of [...state.passengers]) {
+    if (food > 0) {
+      food -= 1;
+      p.hungry = false;
+      continue;
+    }
+    unfed.push(p.id);
+    if (!p.hungry) p.hungry = true;
+    else harm(state, p, "hunger");
+  }
+  state.resources.food = food;
+  if (unfed.length > 0) log(state, `not enough food: ${unfed.length} hungry`);
+}
+
+/** Прогноз еды: через сколько перегонов следующая еда, сколько нужно и хватит ли. */
+export function foodForecast(state: RunState, content: Content): { legs: number; need: number; short: number; hungry: number } {
+  const every = content.balance.foodEveryLegs;
+  const legs = every - (state.legs % every);
+  const need = state.passengers.length + 1;
+  const hungry = state.passengers.filter((p) => p.hungry).length + (state.driver.hungry ? 1 : 0);
+  return { legs, need, short: Math.max(0, need - state.resources.food), hungry };
 }
 
 export function hurtDriver(state: RunState, cause: string): void {
@@ -184,11 +223,12 @@ export function hurtDriver(state: RunState, cause: string): void {
 
 // ---------- Прочее ----------
 
+/** Кто может работать: все живые (раненые тоже). */
 export function healthyPassengers(state: RunState): Passenger[] {
-  return state.passengers.filter((p) => p.status === "healthy");
+  return state.passengers;
 }
 
 export function navigatorManned(state: RunState): boolean {
   const seat = state.bus.seats.find((s) => s.role === "navigator");
-  return seat !== undefined && state.passengers.some((p) => p.seat === seat.id && p.status === "healthy");
+  return seat !== undefined && state.passengers.some((p) => p.seat === seat.id);
 }

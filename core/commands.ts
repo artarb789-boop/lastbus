@@ -5,16 +5,7 @@
  */
 import { fuelCost } from "./bus";
 import type { Content } from "./content";
-import {
-  boardPassengers,
-  deliver,
-  dropEarly,
-  feedIfDue,
-  harm,
-  movePassenger,
-  navigatorManned,
-  tickTicketsAndExit,
-} from "./crew";
+import { boardPassengers, deliver, dropEarly, feedIfDue, harm, healFull, movePassenger, navigatorManned, tickTicketsAndExit } from "./crew";
 import {
   fits,
   healCapacity,
@@ -670,7 +661,7 @@ function scavenge(state: RunState, content: Content, passengerIds: string[]): Co
   const ids = [...new Set(passengerIds)];
   if (ids.length < 1 || ids.length > 3) return fail("scavenge_needs_1_to_3");
   const team = ids.map((id) => state.passengers.find((p) => p.id === id));
-  if (team.some((p) => !p || p.status !== "healthy")) return fail("scavenger_not_healthy");
+  if (team.some((p) => !p)) return fail("scavenger_not_healthy");
 
   spendAction(state);
   const kind = findNode(state.map, state.nodeId).kind as StopKind;
@@ -692,7 +683,7 @@ function scavenge(state: RunState, content: Content, passengerIds: string[]): Co
 
 function heal(state: RunState, content: Content): CommandResult {
   if (state.phase.type !== "stop") return fail("wrong_phase");
-  const wounded = state.passengers.filter((p) => p.status === "wounded");
+  const wounded = state.passengers.filter((p) => p.hp < p.maxHp).sort((a, b) => a.hp - b.hp);
   const driverWounded = state.driver.status === "wounded";
   if (!driverWounded && wounded.length === 0) return fail("nobody_wounded");
   if (state.resources.medkits < 1) return fail("no_medkits");
@@ -706,7 +697,7 @@ function heal(state: RunState, content: Content): CommandResult {
   }
   for (const p of wounded) {
     if (healed >= cap || state.resources.medkits < 1) break;
-    p.status = "healthy";
+    healFull(p);
     state.resources.medkits -= 1;
     healed++;
   }

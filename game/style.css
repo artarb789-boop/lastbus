@@ -238,3 +238,16 @@ button.big { font-size: 16px; padding: 10px 18px; }
 .cargo { display: grid; gap: 6px; }
 .cargo-item.selected { border-color: var(--amber); }
 .chip .small { display: block; }
+
+/* Голод */
+.res.warn { color: var(--amber); }
+.res.bad { color: var(--red); font-weight: 700; }
+.bad-text { color: var(--red); font-weight: 700; }
+.person { position: relative; }
+.person .hungry { position: absolute; left: -4px; top: -4px; font-size: 11px; }
+
+/* Здоровье пассажира */
+.person .hp-pips { position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); display: flex; gap: 1px; }
+.person .hp-pips i { width: 4px; height: 4px; border-radius: 1px; background: #3a3f4a; }
+.person .hp-pips i.on { background: var(--green); }
+.person.wounded .hp-pips i.on { background: var(--amber); }

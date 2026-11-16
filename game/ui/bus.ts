@@ -42,7 +42,10 @@ export function renderBus(store: Store): string {
           const sel = ui.selectedPassenger === p.id ? "selected" : "";
           const wounded = p.status === "wounded";
           const img = personUrl(p.look, wounded) ?? spriteUrl(personSprite(p.look, wounded));
-          who = `<span class="person ${p.status} ${sel}" title="Билет: ещё ${p.ticket.stopsLeft} из ${p.ticket.stopsTotal} остановок"><img class="px" src="${img}" alt=""><b class="ticket">${p.ticket.stopsLeft}</b></span>`;
+          const hungry = p.hungry ? '<b class="hungry" title="Голоден: пропустил еду">🍽</b>' : "";
+          // Здоровье — точками под фигуркой: раненый работает, пока жив.
+          const pips = Array.from({ length: p.maxHp }, (_, i) => `<i class="${i < p.hp ? "on" : ""}"></i>`).join("");
+          who = `<span class="person ${p.status} ${sel}" title="Здоровье ${p.hp}/${p.maxHp} · билет: ещё ${p.ticket.stopsLeft} из ${p.ticket.stopsTotal} остановок${p.hungry ? " · голоден" : ""}"><img class="px" src="${img}" alt=""><b class="ticket">${p.ticket.stopsLeft}</b>${hungry}<span class="hp-pips">${pips}</span></span>`;
         }
       }
       const cls = ["seat", `role-${seat.role}`, exposed ? "exposed" : "", covered.has(seat.id) ? "covered" : ""].join(" ");
@@ -53,7 +56,7 @@ export function renderBus(store: Store): string {
   return `
     <section class="bus">
       <h3>Салон <span class="muted">— выберите пассажира, затем место</span></h3>
-      <div class="legend muted">цифра — сколько остановок осталось ехать · пунктир — место у борта · 🛡 — закрыто бронёй · красный — ранен</div>
+      <div class="legend muted">цифра — сколько остановок осталось ехать · пунктир — место у борта · 🛡 — закрыто бронёй · точки — здоровье (раненый работает, пока жив) · 🍽 — голоден</div>
       <div class="seats" style="grid-template-columns: repeat(${state.bus.cols}, 1fr)">${cells.join("")}</div>
     </section>`;
 }

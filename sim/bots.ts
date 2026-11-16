@@ -62,17 +62,17 @@ function postHasWeapon(state: RunState, seatId: string, content: Content): boole
 
 /**
  * Перестановки салона:
- * раненых — с постов и мест у бортов на защищённые места;
- * здоровых — на посты у оружия, затем к механику и штурману.
+ * тех, у кого осталось 1 здоровья, — с мест у бортов на защищённые места;
+ * свободных — на посты у оружия, затем к механику и штурману (раненые тоже работают).
  */
 function crewFix(state: RunState, content: Content): Command | null {
   const safeFree = () =>
     state.bus.seats.find((s) => s.role === "plain" && !isExposed(state, s.id) && !occupant(state, s.id));
 
   for (const p of state.passengers) {
-    if (p.status !== "wounded") continue;
+    if (p.hp > 1) continue;
     const seat = seatById(state, p.seat);
-    if (seat && (seat.role !== "plain" || isExposed(state, seat.id))) {
+    if (seat && isExposed(state, seat.id)) {
       const safe = safeFree();
       if (safe) return { type: "seatPassenger", passengerId: p.id, seatId: safe.id };
     }
@@ -88,7 +88,7 @@ function crewFix(state: RunState, content: Content): Command | null {
   for (const post of wanted) {
     const idle = state.passengers.find(
       (p) =>
-        p.status === "healthy" &&
+        (p.hp > 1 || !isExposed(state, post.id)) &&
         (seatById(state, p.seat)?.role === "plain" || (seatById(state, p.seat)?.role === "weapon" && !postHasWeapon(state, p.seat, content))),
     );
     if (idle) return { type: "seatPassenger", passengerId: idle.id, seatId: post.id };
@@ -310,7 +310,8 @@ export function makeCarefulBot(opts: { scavengers: number; heal: boolean; buyGea
           if (junk) return { type: "sell", uid: junk.uid };
         }
         if (phase.actionsLeft > 0) {
-          const team = state.passengers.filter((p) => p.status === "healthy").slice(0, opts.scavengers);
+          // На обыск — только тех, кого риск не убьёт.
+          const team = state.passengers.filter((p) => p.hp > 1).slice(0, opts.scavengers);
           if (team.length > 0) return { type: "scavenge", passengerIds: team.map((p) => p.id) };
         }
         return { type: "leaveStop" };
@@ -395,7 +396,7 @@ export const randomBot: BotFactory = (seed) => {
       }
       if (phase.type === "stop") {
         if (phase.actionsLeft > 0 && int(rng, 0, 2) > 0) {
-          const healthy = state.passengers.filter((p) => p.status === "healthy");
+          const healthy = state.passengers;
           if (healthy.length > 0) return { type: "scavenge", passengerIds: [pick(rng, healthy).id] };
         }
         return { type: "leaveStop" };

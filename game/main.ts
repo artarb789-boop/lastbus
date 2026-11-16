@@ -172,7 +172,7 @@ function onUi(action: string, value: string): void {
         if (!inst || inst.durability <= 0 || state.passengers.some((p) => p.seat === post.id)) continue;
         if (store.content.items[inst.itemId]?.kind !== "weapon") continue; // к бронелисту стрелок не нужен
         const idle = state.passengers.find(
-          (p) => p.status === "healthy" && state.bus.seats.find((s) => s.id === p.seat)?.role === "plain",
+          (p) => state.bus.seats.find((s) => s.id === p.seat)?.role === "plain",
         );
         if (idle) dispatch(store, { type: "seatPassenger", passengerId: idle.id, seatId: post.id });
       }

@@ -83,7 +83,8 @@
     "tank",
     "combat",
     "nemesis",
-    "gangs"
+    "gangs",
+    "passengerHp"
   ],
   "properties": {
     "startResources": {
@@ -588,6 +589,11 @@
           }
         }
       }
+    },
+    "passengerHp": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Запас здоровья пассажира: столько ранений до гибели"
     }
   }
 }

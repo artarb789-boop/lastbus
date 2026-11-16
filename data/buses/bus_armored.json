@@ -161,7 +161,7 @@
     "sideL1": "wpn_shotgun"
   },
   "tankDurability": 4,
-  "hull": 28,
+  "hull": 25,
   "systems": {
     "engine": 5,
     "wheels": 4,
