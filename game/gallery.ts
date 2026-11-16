@@ -3,7 +3,7 @@
  * рядом с тем, что сейчас рисует код. Черновики показываются всегда — витрина для проверки.
  * Открывается по адресу /gallery.html на dev-сервере.
  */
-import { busSprite, enemyLook, PLAYER_LOOK } from "./art/buses";
+import { busSprite, enemyLook, PLAYER_LOOKS, playerBusLook } from "./art/buses";
 import { artCatalog, sizeLabel, sizeOk, type ArtCategory, type ArtSpec } from "./art/catalog";
 import { fileUrl, manifest } from "./art/images";
 import { personSprite } from "./art/people";
@@ -55,7 +55,7 @@ function fallback(spec: ArtSpec): string {
   const [dir, file] = spec.path.split("/") as [string, string];
   const id = file.replace(/\.png$/, "");
   if (dir === "buses" && !id.endsWith("_wreck")) {
-    const s = busSprite(id === "bus_city" ? PLAYER_LOOK : enemyLook(id));
+    const s = busSprite(PLAYER_LOOKS[id] ? playerBusLook(id) : enemyLook(id));
     return img(spriteUrl(s), Math.max(...s.rows.map((r) => r.length)), s.rows.length, 3);
   }
   if (dir === "weapons") {
@@ -146,7 +146,7 @@ function assembleSvg(bus: Pic, mounts: { slot: string; itemId: string }[], capti
 
 /** Сборки: игрок со всем оружием и каждый враг со своим — проверка точек крепления. */
 function assembly(): string {
-  const player = filePic("buses/bus_city.png") ?? spritePic(busSprite(PLAYER_LOOK));
+
   const playerMounts = [
     { slot: "roof", itemId: "wpn_mg" },
     { slot: "front", itemId: "wpn_ram" },
@@ -156,7 +156,12 @@ function assembly(): string {
     { slot: "sideR1", itemId: "wpn_flamer" },
     { slot: "sideR2", itemId: "wpn_shotgun" },
   ];
-  const cards = [assembleSvg(player, playerMounts, "Автобус игрока, всё оружие")];
+  const cards = Object.values(content.buses).map((b) => {
+    // Оружие — только в слоты, которые есть у этого автобуса.
+    const mounts = playerMounts.filter((m) => b.slots.some((s) => s.id === m.slot));
+    const pic = filePic(`buses/${b.id}.png`) ?? spritePic(busSprite(playerBusLook(b.id)));
+    return assembleSvg(pic, mounts, `${content.locale[b.nameKey] ?? b.id}: всё оружие`);
+  });
   for (const e of Object.values(content.enemies)) {
     // Сгенерированный враг нарисован вместе с оружием — ставим оружие только на автобус из кода.
     const generated = filePic(`buses/${e.id}.png`);

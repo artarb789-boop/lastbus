@@ -35,6 +35,8 @@ export const PERSON_KEYS = { hair: "#404040", clothes: "#808080", skin: "#c0c0c0
 /** Цвета банд (корпус, полоса, крыша) — их можно добавить к палитре при пикселизации автобуса. */
 export const BAND_COLORS: Record<string, string[]> = {
   bus_city: ["#d99a2b", "#8c5a14", "#e8b44f"],
+  bus_shuttle: ["#e8b13a", "#a8601c", "#f2c862"],
+  bus_armored: ["#a8923c", "#5e5222", "#c2ad5a"],
   enemy_raider_minibus: ["#a63a32", "#5e1f1b", "#c4544a"],
   enemy_raider_sawnoff: ["#8e4a2c", "#4a2414", "#a85d38"],
   enemy_rival_carrier: ["#3e6d9c", "#1f3b57", "#5b8cc0"],

@@ -269,7 +269,7 @@ export class CombatScene {
     this.combat = c;
 
     // Автобус игрока рисуется без оружия, оружие ставится поверх по точкам крепления.
-    this.setLook(this.player, art("buses/bus_city.png") ?? fromSprite(busSprite(playerLook(state, content))));
+    this.setLook(this.player, art(`buses/${state.bus.id}.png`) ?? fromSprite(busSprite(playerLook(state, content))));
     this.setMounts(this.player, this.playerMounts(store));
     // Сгенерированный враг уже нарисован с оружием; врагу кодом оружие ставится так же, как игроку.
     const enemyArt = art(`buses/${c.enemy.enemyId}.png`);

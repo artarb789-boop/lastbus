@@ -6,6 +6,7 @@
   "required": [
     "id",
     "nameKey",
+    "descKey",
     "rows",
     "cols",
     "exposedCols",
@@ -21,6 +22,9 @@
       "$ref": "common#/definitions/id"
     },
     "nameKey": {
+      "$ref": "common#/definitions/key"
+    },
+    "descKey": {
       "$ref": "common#/definitions/key"
     },
     "rows": {
@@ -144,6 +148,21 @@
           "minimum": 1
         }
       }
+    },
+    "fuelMult": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Множитель расхода топлива"
+    },
+    "evasionBonus": {
+      "type": "number",
+      "minimum": -0.5,
+      "maximum": 0.5,
+      "description": "Прибавка к уклонению в бою"
+    },
+    "tankBonus": {
+      "type": "integer",
+      "description": "Прибавка к вместимости бака"
     }
   }
 }

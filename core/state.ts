@@ -199,9 +199,13 @@ export interface CombatState {
   weapons: PlayerWeaponState[];
   status: StatusTimers;
   mechanicTimer: number;
+  /** Что механик чинит в первую очередь. */
+  mechanicFocus: MechanicFocus;
   medicTimer: number;
   enemy: EnemyState;
 }
+
+export type MechanicFocus = "systems" | "weapons";
 
 export interface LootOffer {
   /** Ресурсы уже начислены, здесь — для показа. */

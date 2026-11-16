@@ -36,6 +36,7 @@ export function checkContent(c: Content): string[] {
   for (const bus of Object.values(c.buses)) {
     const where = `bus ${bus.id}`;
     if (!hasText(bus.nameKey)) err(where, `missing text ${bus.nameKey}`);
+    if (!hasText(bus.descKey)) err(where, `missing text ${bus.descKey}`);
     const seatIds = new Set<string>();
     for (const s of bus.seats) {
       if (seatIds.has(s.id)) err(where, `duplicate seat ${s.id}`);

@@ -149,7 +149,7 @@
     "distanceStep": 0.04,
     "escapeTicks": 40,
     "escapeMidRate": 0.5,
-    "enemyAccuracyMult": 0.85,
+    "enemyAccuracyMult": 0.95,
     "evasion": {
       "base": 0.05,
       "engine": 0.1,
@@ -160,13 +160,14 @@
     "crewWoundChance": 0.25,
     "driverWoundChance": 0.3,
     "mechanicRepairTicks": 20,
-    "gunnerRepairTicks": 40,
+    "gunnerRepairTicks": 24,
     "medicHealTicks": 30,
     "burnEvery": 10,
     "ambushChance": 0.12,
     "maxTicks": 1200,
     "brokenEngineFuelMult": 1.5,
-    "brokenWheelsFuelMult": 1.25
+    "brokenWheelsFuelMult": 1.25,
+    "fieldRepairParts": 1
   },
   "nemesis": {
     "template": "enemy_nemesis",

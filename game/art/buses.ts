@@ -145,6 +145,18 @@ export const PLAYER_LOOK: BusLook = {
   seed: 7,
 };
 
+/** Облик каждого автобуса игрока по id из data/buses. Все тёплые, окна светятся. */
+export const PLAYER_LOOKS: Record<string, BusLook> = {
+  bus_city: PLAYER_LOOK,
+  bus_shuttle: { length: 46, ...band("bus_shuttle"), litWindows: true, seed: 8 },
+  // Вахтовка бронирована с завода: нижние листы есть всегда.
+  bus_armored: { length: 64, ...band("bus_armored"), litWindows: true, armor: true, seed: 9 },
+};
+
+export function playerBusLook(busId: string): BusLook {
+  return PLAYER_LOOKS[busId] ?? PLAYER_LOOK;
+}
+
 export const ENEMY_LOOKS: Record<string, BusLook> = {
   enemy_raider_minibus: { length: 44, ...band("enemy_raider_minibus"), rust: 0.08, seed: 11 },
   enemy_raider_sawnoff: { length: 48, ...band("enemy_raider_sawnoff"), rust: 0.15, seed: 12 },
@@ -173,5 +185,6 @@ export function playerLook(state: RunState, content: Content): BusLook {
   const anyArmor = Object.values(state.equipment).some(
     (inst) => inst && inst.durability > 0 && content.items[inst.itemId]?.kind === "armor",
   );
-  return { ...PLAYER_LOOK, armor: anyArmor };
+  const base = playerBusLook(state.bus.id);
+  return { ...base, armor: base.armor || anyArmor };
 }

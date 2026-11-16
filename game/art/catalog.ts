@@ -48,6 +48,8 @@ export const SCENE_LAYERS = ["sky", "dunes_far", "dunes_near", "road"] as const;
 export const SIZES = {
   bus: { w: [44, 64] as [number, number], h: 24 },
   busPlayer: { w: 60, h: 24 },
+  /** Длина каждого автобуса игрока — как у его облика в коде. */
+  playerLength: { bus_city: 60, bus_shuttle: 46, bus_armored: 64 } as Record<string, number>,
   busBoss: { w: 80, h: 28 },
   weapon: { w: 16, h: 10 },
   item: { w: 24, h: 24 },
@@ -64,7 +66,10 @@ export function artCatalog(content: Content): ArtSpec[] {
   const out: ArtSpec[] = [];
   const name = (key: string) => content.locale[key] ?? key;
 
-  out.push({ path: "buses/bus_city.png", category: "buses", ...SIZES.busPlayer, priority: 1, label: "Автобус игрока" });
+  for (const b of Object.values(content.buses)) {
+    const w = SIZES.playerLength[b.id] ?? SIZES.bus.w;
+    out.push({ path: `buses/${b.id}.png`, category: "buses", w, h: SIZES.busPlayer.h, priority: 1, label: `Игрок: ${name(b.nameKey)}` });
+  }
   for (const e of Object.values(content.enemies)) {
     const size = e.id === "enemy_boss_prison_bus" ? SIZES.busBoss : e.id === "enemy_nemesis" ? SIZES.busPlayer : SIZES.bus;
     out.push({ path: `buses/${e.id}.png`, category: "buses", ...size, priority: 1, label: name(e.nameKey) });

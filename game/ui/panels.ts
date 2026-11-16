@@ -11,7 +11,9 @@ import {
   type RepairableSystem,
 } from "../../core";
 import type { Store } from "../store";
+import { playerBusLook, busSprite } from "../art/buses";
 import { artImg } from "../art/images";
+import { spriteUrl } from "../art/pixel";
 import { cmdAttr, esc, itemName, NODE, RES, SHOP, SYSTEM, t, uiAttr } from "./text";
 
 /** Иконка ресурса: картинка ×2, если утверждена, иначе эмодзи. */
@@ -24,27 +26,79 @@ function itemIcon(id: string): string {
 }
 
 /** Выбор водителя перед новым забегом. */
-export function renderDriverPick(store: Store): string {
+/** Короткие характеристики автобуса для карточки выбора. */
+function busStats(store: Store, busId: string): string {
   const { content } = store;
-  const cards = Object.values(content.drivers)
+  const bus = content.buses[busId]!;
+  const seats = bus.seats.filter((s) => s.role !== "driver").length;
+  const guns = bus.slots.filter((s) => s.kind !== "internal").length;
+  const inner = bus.slots.length - guns;
+  const pct = (x: number) => `${x > 0 ? "+" : "−"}${Math.round(Math.abs(x) * 100)}%`;
+  const rows: string[] = [
+    `Мест: <b>${seats}</b>`,
+    `Корпус: <b>${bus.hull}</b>`,
+    `Двигатель / колёса / кабина: <b>${bus.systems.engine} / ${bus.systems.wheels} / ${bus.systems.cabin}</b>`,
+    `Слотов: <b>${guns}</b> наружных, <b>${inner}</b> внутри`,
+    `Бак: <b>${content.balance.tankBase + (bus.tankBonus ?? 0)}</b>, прочность ${bus.tankDurability}`,
+  ];
+  if (bus.fuelMult && bus.fuelMult !== 1) rows.push(`Расход топлива: <b>${pct(bus.fuelMult - 1)}</b>`);
+  if (bus.evasionBonus) rows.push(`Уклонение: <b>${pct(bus.evasionBonus)}</b>`);
+  const start = Object.values(bus.startEquipment).map((id) => esc(itemName(content, id)));
+  if (start.length) rows.push(`С собой: ${start.join(", ")}`);
+  return `<ul class="stats">${rows.map((r) => `<li>${r}</li>`).join("")}</ul>`;
+}
+
+/** Картинка автобуса: сгенерированная, если утверждена, иначе нарисованная кодом. */
+function busPicture(busId: string): string {
+  const generated = artImg(`buses/${busId}.png`, 2, "bus-pic");
+  if (generated) return generated;
+  const s = busSprite(playerBusLook(busId));
+  const w = Math.max(...s.rows.map((r) => r.length));
+  return `<img class="px bus-pic" src="${spriteUrl(s)}" width="${w * 2}" height="${s.rows.length * 2}" alt="">`;
+}
+
+/** Экран нового забега: выбор автобуса и водителя. */
+export function renderDriverPick(store: Store): string {
+  const { content, ui } = store;
+  const buses = Object.values(content.buses)
+    .sort((a, b) => a.hull - b.hull)
+    .map(
+      (b) => `
+        <button class="pick-card ${ui.newBus === b.id ? "on" : ""}" ${uiAttr("pickBus", b.id)}>
+          <div class="pic">${busPicture(b.id)}</div>
+          <h3>${esc(t(content, b.nameKey))}</h3>
+          <p>${esc(t(content, b.descKey))}</p>
+          ${busStats(store, b.id)}
+        </button>`,
+    )
+    .join("");
+  const drivers = Object.values(content.drivers)
     .sort((a, b) => a.id.localeCompare(b.id))
     .map(
       (d) => `
-        <div class="driver-card">
+        <button class="pick-card ${ui.newDriver === d.id ? "on" : ""}" ${uiAttr("pickDriver", d.id)}>
           ${artImg(`drivers/${d.id}.png`, 3, "portrait", "")}
           <h3>${esc(t(content, d.nameKey))}</h3>
           <p>${esc(t(content, d.descKey))}</p>
-          <button class="primary" ${uiAttr("pickDriver", d.id)}>Ехать с этим водителем</button>
-        </div>`,
+        </button>`,
     )
     .join("");
   const back = store.commands.length > 0 ? `<button ${uiAttr("cancelDriver")}>Вернуться к текущему забегу</button>` : "";
+  const busName = t(content, content.buses[ui.newBus]?.nameKey ?? ui.newBus);
+  const driverName = t(content, content.drivers[ui.newDriver]?.nameKey ?? ui.newDriver);
   return `
-    <section class="panel">
-      <h2>Кто сядет за руль?</h2>
+    <section class="panel new-run">
+      <h2>Новый забег</h2>
+      <h3 class="step">1. Автобус</h3>
+      <p class="muted">От автобуса зависят места для пассажиров, слоты под оружие, прочность и расход топлива.</p>
+      <div class="pick-grid">${buses}</div>
+      <h3 class="step">2. Водитель</h3>
       <p class="muted">Водитель — единственный в автобусе со своей особенностью. Остальных вы подберёте по дороге.</p>
-      <div class="drivers">${cards}</div>
-      ${back}
+      <div class="pick-grid">${drivers}</div>
+      <div class="start-row">
+        <button class="primary big" ${uiAttr("startRun")}>В путь: ${esc(busName)}, ${esc(driverName)}</button>
+        ${back}
+      </div>
     </section>`;
 }
 

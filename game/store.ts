@@ -2,10 +2,10 @@
  * Состояние клиента: забег из ядра, список команд и состояние интерфейса.
  * Сохранение — это seed и команды: при загрузке забег воспроизводится заново.
  */
-import { applyCommand, DEFAULT_DRIVER, newRun, replay, type Command, type Content, type RunState } from "../core";
+import { applyCommand, DEFAULT_BUS, DEFAULT_DRIVER, newRun, replay, type Command, type Content, type RunState } from "../core";
 
 // Версия меняется, когда меняется логика забега: старое сохранение воспроизвелось бы иначе.
-const SAVE_KEY = "lastbus.save.v2";
+const SAVE_KEY = "lastbus.save.v3";
 
 export interface UiState {
   /** Выбранный пассажир для пересадки, высадки или обыска. */
@@ -22,8 +22,11 @@ export interface UiState {
   lootSurvivors: boolean;
   /** Цель, которую раздаём стволам в бою кликом по врагу. */
   aimSlot: string | null;
-  /** Показан выбор водителя для нового забега. */
+  /** Показан экран нового забега: выбор автобуса и водителя. */
   choosingDriver: boolean;
+  /** Что выбрано на экране нового забега. */
+  newBus: string;
+  newDriver: string;
 }
 
 export interface Store {
@@ -46,6 +49,8 @@ function freshUi(): UiState {
     lootSurvivors: true,
     aimSlot: null,
     choosingDriver: false,
+    newBus: DEFAULT_BUS,
+    newDriver: DEFAULT_DRIVER,
   };
 }
 
@@ -58,21 +63,28 @@ export function createStore(content: Content): Store {
   if (saved) {
     try {
       const driverId = saved.driverId ?? DEFAULT_DRIVER;
-      const state = replay(saved.seed, saved.commands, content, { driverId });
+      // Старые сохранения без автобуса — это городской.
+      const busId = saved.busId && content.buses[saved.busId] ? saved.busId : DEFAULT_BUS;
+      const state = replay(saved.seed, saved.commands, content, { busId, driverId });
       return { content, state, commands: saved.commands, ui: freshUi(), error: null };
     } catch (e) {
       console.warn("save could not be replayed, starting a new run", e);
     }
   }
-  // Первый запуск: сначала выбор водителя.
+  // Первый запуск: сначала выбор автобуса и водителя.
   const seed = seedFromUrl() ?? randomSeed();
   const ui = freshUi();
   ui.choosingDriver = true;
   return { content, state: newRun(seed, content), commands: [], ui, error: null };
 }
 
-export function startNewRun(store: Store, driverId: string = DEFAULT_DRIVER, seed: number = randomSeed()): void {
-  store.state = newRun(seed, store.content, { driverId });
+export function startNewRun(
+  store: Store,
+  busId: string = DEFAULT_BUS,
+  driverId: string = DEFAULT_DRIVER,
+  seed: number = randomSeed(),
+): void {
+  store.state = newRun(seed, store.content, { busId, driverId });
   store.commands = [];
   store.ui = freshUi();
   store.error = null;
@@ -99,18 +111,18 @@ export function dispatch(store: Store, cmd: Command): boolean {
 
 function persist(store: Store): void {
   try {
-    const save = { seed: store.state.seed, driverId: store.state.driver.id, commands: store.commands };
+    const save = { seed: store.state.seed, busId: store.state.bus.id, driverId: store.state.driver.id, commands: store.commands };
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   } catch {
     // Хранилище недоступно (приватный режим) — играем без сохранения.
   }
 }
 
-function loadSave(): { seed: number; driverId?: string; commands: Command[] } | null {
+function loadSave(): { seed: number; busId?: string; driverId?: string; commands: Command[] } | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    const data = JSON.parse(raw) as { seed: number; driverId?: string; commands: Command[] };
+    const data = JSON.parse(raw) as { seed: number; busId?: string; driverId?: string; commands: Command[] };
     return typeof data.seed === "number" && Array.isArray(data.commands) ? data : null;
   } catch {
     return null;

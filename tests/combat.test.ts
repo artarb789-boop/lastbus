@@ -297,3 +297,42 @@ describe("бой в забеге", () => {
     expect(fuelCost(s, c, edge)).toBe(Math.ceil(normal * content.balance.combat.brokenEngineFuelMult));
   });
 });
+
+describe("ремонт оружия в бою", () => {
+  it("«Залатать» тратит запчасти и даёт +1 прочности", () => {
+    const s = arena("enemy_raider_minibus");
+    s.equipment.roof!.durability = 0;
+    s.resources.parts = 3;
+    const cost = c.balance.combat.fieldRepairParts;
+    expect(applyCommand(s, { type: "fieldRepair", slotId: "roof" }, c)).toEqual({ ok: true });
+    expect(s.equipment.roof!.durability).toBe(1);
+    expect(s.resources.parts).toBe(3 - cost);
+  });
+
+  it("«Залатать» без запчастей или целое — отказ", () => {
+    const s = arena("enemy_raider_minibus");
+    s.resources.parts = 0;
+    s.equipment.roof!.durability = 0;
+    expect(applyCommand(s, { type: "fieldRepair", slotId: "roof" }, c)).toEqual({ ok: false, error: "not_enough_parts" });
+    s.resources.parts = 5;
+    s.equipment.roof!.durability = 3;
+    expect(applyCommand(s, { type: "fieldRepair", slotId: "roof" }, c)).toEqual({ ok: false, error: "not_damaged" });
+    expect(applyCommand(s, { type: "fieldRepair", slotId: "front" }, c).ok).toBe(false);
+  });
+
+  it("механик с приоритетом «оружие» чинит оружие раньше систем", () => {
+    const s = arena("enemy_raider_minibus");
+    const mech = s.bus.seats.find((x) => x.role === "mechanic")!;
+    const p = s.passengers.find((x) => s.bus.seats.find((y) => y.id === x.seat)?.role !== "weapon")!;
+    p.seat = mech.id;
+    p.status = "healthy";
+    s.systems.engine.hp = 1;
+    s.equipment.roof!.durability = 0;
+    expect(applyCommand(s, { type: "setMechanicFocus", focus: "weapons" }, c).ok).toBe(true);
+    // Враг не стреляет: проверяем только ремонт.
+    for (const w of combatOf(s).enemy.weapons) w.disabled = true;
+    for (let k = 0; k < c.balance.combat.mechanicRepairTicks; k++) combatTick(s, c, combatOf(s));
+    expect(s.equipment.roof!.durability).toBeGreaterThan(0);
+    expect(s.systems.engine.hp).toBe(1);
+  });
+});

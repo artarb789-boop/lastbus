@@ -393,7 +393,8 @@
         "brokenWheelsFuelMult",
         "escapeMidRate",
         "enemyAccuracyMult",
-        "gunnerRepairTicks"
+        "gunnerRepairTicks",
+        "fieldRepairParts"
       ],
       "properties": {
         "tickSeconds": {
@@ -486,6 +487,11 @@
         "gunnerRepairTicks": {
           "type": "integer",
           "minimum": 1
+        },
+        "fieldRepairParts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Сколько запчастей стоит залатать оружие в бою (+1 прочности)"
         }
       }
     },

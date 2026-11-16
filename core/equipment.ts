@@ -53,7 +53,8 @@ function passiveValues(state: RunState, content: Content, type: string): number[
 }
 
 export function tankMax(state: RunState, content: Content): number {
-  return content.balance.tankBase + passiveValues(state, content, "tankBonus").reduce((a, b) => a + b, 0);
+  const modules = passiveValues(state, content, "tankBonus").reduce((a, b) => a + b, 0);
+  return content.balance.tankBase + (state.bus.tankBonus ?? 0) + modules;
 }
 
 export function fuelMult(state: RunState, content: Content): number {

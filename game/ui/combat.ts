@@ -2,6 +2,7 @@
 import {
   bandOf,
   canEscape,
+  occupant,
   enemyEvasion,
   itemDef,
   playerEvasion,
@@ -33,22 +34,38 @@ export function renderCombat(store: Store): string {
 
   const targets: TargetRef[] = ["hull", "engine", "wheels", "cabin", "tank", ...e.weapons.map((_, i) => `weapon:${i}` as TargetRef)];
 
+  const cb = content.balance.combat;
+  const repairCost = cb.fieldRepairParts;
+  const canPatch = state.resources.parts >= repairCost;
   const myWeapons = c.weapons
     .map((w) => {
       const inst = state.equipment[w.slotId];
       if (!inst) return "";
+      const maxDur = itemDef(content, inst).durability;
       const stats = itemDef(content, inst).weapon!;
       const manned = weaponManned(state, w.slotId);
       const broken = inst.durability <= 0;
       const inRange = stats.ranges.includes(band);
-      const status = broken ? '<b class="warn">разбит</b>' : !manned ? '<b class="warn">пост пуст</b>' : !inRange ? '<span class="muted">не достаёт</span>' : "";
+      // Разбитый ствол латает стрелок на посту — показываем, сколько осталось.
+      const gunnerFix = broken && manned ? ` · стрелок латает ${bar(w.repairTimer, cb.gunnerRepairTicks, "repair")}` : "";
+      const status = broken
+        ? `<b class="warn">разбит</b>${gunnerFix || ' <span class="muted">· некому латать</span>'}`
+        : !manned
+          ? '<b class="warn">пост пуст</b>'
+          : !inRange
+            ? '<span class="muted">не достаёт</span>'
+            : "";
+      const patch =
+        inst.durability < maxDur
+          ? `<button class="${broken ? "primary" : ""}" ${canPatch ? "" : "disabled"} title="Сразу +1 прочности за ${repairCost} запч." ${cmdAttr({ type: "fieldRepair", slotId: w.slotId })}>Залатать (🔩${repairCost})</button>`
+          : "";
       const options = targets
         .map((tg) => `<option value="${tg}" ${tg === w.target ? "selected" : ""}>${esc(targetLabel(content, tg, e.weapons))}</option>`)
         .join("");
       return `
         <div class="weapon ${ui.aimSlot === w.slotId ? "aiming" : ""}">
           <div><b>${esc(itemName(content, inst.itemId))}</b> <span class="muted">${esc(SLOT[w.slotId] ?? w.slotId)} · ${stats.ranges.map((r) => BAND_LABEL[r]).join(", ")}${stats.ammoPerVolley ? ` · 🎯${stats.ammoPerVolley}` : ""}</span> ${status}</div>
-          <div>заряд ${bar(w.charge, stats.charge, "charge")} прочность ${inst.durability}/${itemDef(content, inst).durability}</div>
+          <div>заряд ${bar(w.charge, stats.charge, "charge")} прочность ${inst.durability}/${maxDur} ${patch}</div>
           <label>цель <select data-target-slot="${esc(w.slotId)}">${options}</select></label>
         </div>`;
     })
@@ -107,6 +124,7 @@ export function renderCombat(store: Store): string {
           <h3>Ваши стволы</h3>
           ${emptyPosts ? `<button class="primary" ${uiAttr("autoMan")}>Посадить людей к оружию</button>` : ""}
           ${myWeapons || '<p class="muted">Оружия нет.</p>'}
+          ${mechanicRow(store, c)}
           <h4>Манёвр</h4>
           <div class="row">${man("approach", "Сближаться")}${man("hold", "Держаться")}${man("retreat", "Отходить")}</div>
           <p>Дистанция: <b>${BAND_LABEL[band]}</b> · ваше уклонение ${Math.round(playerEvasion(state, content) * 100)}%</p>
@@ -124,4 +142,21 @@ export function renderCombat(store: Store): string {
         </div>
       </div>
     </section>`;
+}
+
+/** Механик в бою: что чинит в первую очередь и сидит ли он на посту. */
+function mechanicRow(store: Store, c: CombatState): string {
+  const { state, content } = store;
+  const seat = state.bus.seats.find((x) => x.role === "mechanic");
+  const mech = seat ? occupant(state, seat.id) : undefined;
+  const working = mech?.status === "healthy";
+  const every = content.balance.combat.mechanicRepairTicks;
+  const btn = (focus: "systems" | "weapons", label: string) =>
+    `<button class="${c.mechanicFocus === focus ? "on" : ""}" ${cmdAttr({ type: "setMechanicFocus", focus })}>${label}</button>`;
+  const note = working
+    ? `${bar(c.mechanicTimer, every, "repair")} <span class="muted">+1 раз в ${(every * content.balance.combat.tickSeconds).toFixed(0)} с</span>`
+    : '<b class="warn">пост механика пуст</b>';
+  return `
+    <h4>Механик чинит</h4>
+    <div class="row">${btn("systems", "Сначала системы")}${btn("weapons", "Сначала оружие")} ${note}</div>`;
 }

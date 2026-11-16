@@ -161,6 +161,20 @@ function combatCommand(state: RunState, content: Content, style: "careful" | "gr
   const fix = crewFix(state, content);
   if (fix) return fix;
 
+  if (style === "careful") {
+    // Разбитое оружие латаем за запчасть, но пару запчастей держим на ремонт на остановке.
+    const broken = c.weapons.find((w) => {
+      const inst = state.equipment[w.slotId];
+      return inst && inst.durability <= 0;
+    });
+    const cost = content.balance.combat.fieldRepairParts;
+    if (broken && state.resources.parts >= cost + 1) return { type: "fieldRepair", slotId: broken.slotId };
+    // Механик — на оружие, пока системы целы; иначе — на системы.
+    const systemsOk = state.systems.engine.hp > 0 && state.systems.wheels.hp > 0 && state.systems.cabin.hp > 0;
+    const focus = systemsOk ? "weapons" : "systems";
+    if (c.mechanicFocus !== focus) return { type: "setMechanicFocus", focus };
+  }
+
   const danger = c.source !== "boss" && state.hull.hp <= state.hull.max * 0.35;
   if (style === "careful" && danger) {
     if (canEscape(c, content)) return { type: "escape" };

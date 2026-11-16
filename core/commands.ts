@@ -38,24 +38,7 @@ import { freeSeats } from "./crew";
 import { afterNemesisFight, nemesisDef, nemesisDue } from "./nemesis";
 import { leakAfterLeg, repairTankCost, repairTankFull } from "./tank";
 import { chance, int, pick, weighted } from "./rng";
-import type {
-  BusSystem,
-  CombatResult,
-  CombatSource,
-  CombatState,
-  EventContinuation,
-  LootOffer,
-  Maneuver,
-  MapEdge,
-  Pace,
-  ResourceKind,
-  Resources,
-  RunState,
-  ShopOffer,
-  ShopVisit,
-  StopKind,
-  TargetRef,
-} from "./state";
+import type { BusSystem, CombatResult, CombatSource, CombatState, EventContinuation, LootOffer, Maneuver, MapEdge, MechanicFocus, Pace, ResourceKind, Resources, RunState, ShopOffer, ShopVisit, StopKind, TargetRef } from "./state";
 import { RESOURCE_KINDS, STOP_KINDS } from "./state";
 
 export type RepairableSystem = BusSystem | "hull" | "tank";
@@ -72,6 +55,9 @@ export type Command =
   | { type: "repairSystem"; system: RepairableSystem }
   | { type: "setTarget"; slotId: string; target: TargetRef }
   | { type: "setManeuver"; maneuver: Maneuver }
+  /** Залатать оружие в бою за запчасти: +1 прочности. */
+  | { type: "fieldRepair"; slotId: string }
+  | { type: "setMechanicFocus"; focus: MechanicFocus }
   | { type: "advance"; ticks: number }
   | { type: "escape" }
   | { type: "finishLoot"; itemIndex: number | null; takeSurvivors: boolean }
@@ -116,6 +102,10 @@ export function applyCommand(state: RunState, cmd: Command, content: Content): C
       return setTargetCmd(state, cmd.slotId, cmd.target);
     case "setManeuver":
       return setManeuverCmd(state, cmd.maneuver);
+    case "fieldRepair":
+      return fieldRepairCmd(state, content, cmd.slotId);
+    case "setMechanicFocus":
+      return setMechanicFocusCmd(state, cmd.focus);
     case "advance":
       return advanceCmd(state, content, cmd.ticks);
     case "escape":
@@ -378,6 +368,27 @@ function setManeuverCmd(state: RunState, maneuver: Maneuver): CommandResult {
   if (state.phase.type !== "combat") return fail("wrong_phase");
   if (maneuver !== "approach" && maneuver !== "hold" && maneuver !== "retreat") return fail("bad_maneuver");
   state.phase.combat.maneuver = maneuver;
+  return OK;
+}
+
+function fieldRepairCmd(state: RunState, content: Content, slotId: string): CommandResult {
+  if (state.phase.type !== "combat") return fail("wrong_phase");
+  const inst = state.equipment[slotId];
+  const def = inst ? content.items[inst.itemId] : undefined;
+  if (!inst || def?.kind !== "weapon") return fail("unknown_weapon");
+  if (inst.durability >= def.durability) return fail("not_damaged");
+  const cost = content.balance.combat.fieldRepairParts;
+  if (state.resources.parts < cost) return fail("not_enough_parts");
+  state.resources.parts -= cost;
+  inst.durability++;
+  log(state, `field repair ${inst.itemId} +1 (-${cost} parts)`);
+  return OK;
+}
+
+function setMechanicFocusCmd(state: RunState, focus: MechanicFocus): CommandResult {
+  if (state.phase.type !== "combat") return fail("wrong_phase");
+  if (focus !== "systems" && focus !== "weapons") return fail("bad_focus");
+  state.phase.combat.mechanicFocus = focus;
   return OK;
 }
 

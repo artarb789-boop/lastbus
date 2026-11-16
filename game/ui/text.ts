@@ -115,6 +115,8 @@ export const ERRORS: Record<string, string> = {
   scavenge_needs_1_to_3: "На обыск нужно от 1 до 3 человек",
   driver_seat: "Место водителя занято водителем",
   not_damaged: "Чинить нечего",
+  unknown_weapon: "Здесь нет оружия",
+  bad_focus: "Неизвестный приоритет",
 };
 
 export function bar(value: number, max: number, cls = ""): string {

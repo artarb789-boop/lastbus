@@ -8,18 +8,7 @@ import { harm, hurtDriver, occupant } from "../crew";
 import { coveredSeats, itemDef, working } from "../equipment";
 import { log } from "../log";
 import { chance, pick } from "../rng";
-import type {
-  CombatResult,
-  CombatSource,
-  CombatState,
-  EnemyState,
-  Maneuver,
-  PlayerWeaponState,
-  RunState,
-  StatusTimers,
-  SystemHp,
-  TargetRef,
-} from "../state";
+import type { CombatResult, CombatSource, CombatState, EnemyState, ItemInstance, Maneuver, MechanicFocus, PlayerWeaponState, RunState, StatusTimers, SystemHp, TargetRef } from "../state";
 import { driverEscapeMult, driverEvasionBonus } from "../driver";
 import { damageTank } from "../tank";
 import { BAND_CENTER, enemyIsFleeing, enemyManeuver, retargetEnemy } from "./ai";
@@ -84,6 +73,7 @@ export function startCombat(
     weapons,
     status: emptyStatus(),
     mechanicTimer: 0,
+    mechanicFocus: "systems",
     medicTimer: 0,
     enemy: enemyState,
   };
@@ -115,7 +105,7 @@ export function playerEvasion(state: RunState, content: Content): number {
   if (state.systems.wheels.hp > 0) ev += e.wheels;
   if (seatHealthy(state, roleSeat(state, "navigator"))) ev += e.navigator;
   if (state.driver.status === "healthy" && state.systems.cabin.hp > 0) ev += e.driver;
-  return ev + driverEvasionBonus(state, content);
+  return ev + (state.bus.evasionBonus ?? 0) + driverEvasionBonus(state, content);
 }
 
 export function enemyEvasion(_content: Content, combat: CombatState): number {
@@ -302,7 +292,7 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
     combat.mechanicTimer++;
     if (combat.mechanicTimer >= b.mechanicRepairTicks) {
       combat.mechanicTimer = 0;
-      mechanicCombatRepair(state, content);
+      mechanicCombatRepair(state, content, combat.mechanicFocus);
     }
   }
   if (seatHealthy(state, roleSeat(state, "medic"))) {
@@ -395,8 +385,13 @@ function clampHit(p: number): number {
   return Math.max(0.05, Math.min(0.95, p));
 }
 
-/** Механик в бою: двигатель, колёса, кабина, бак, затем оружие. Корпус чинится только на остановке. */
-function mechanicCombatRepair(state: RunState, content: Content): void {
+/**
+ * Механик в бою: по умолчанию двигатель, колёса, кабина, бак, затем оружие.
+ * С приоритетом «оружие» — сначала разбитое оружие, потом повреждённое, потом системы.
+ * Корпус чинится только на остановке.
+ */
+function mechanicCombatRepair(state: RunState, content: Content, focus: MechanicFocus = "systems"): void {
+  if (focus === "weapons" && repairWeapon(state, content)) return;
   for (const sys of ["engine", "wheels", "cabin"] as const) {
     if (state.systems[sys].hp < state.systems[sys].max) {
       state.systems[sys].hp++;
@@ -409,15 +404,22 @@ function mechanicCombatRepair(state: RunState, content: Content): void {
     log(state, "mechanic patched tank +1");
     return;
   }
-  for (const [, inst] of Object.entries(state.equipment)) {
+  repairWeapon(state, content);
+}
+
+/** +1 прочности оружию: сначала разбитому, потом самому повреждённому. */
+function repairWeapon(state: RunState, content: Content): boolean {
+  let best: ItemInstance | null = null;
+  for (const inst of Object.values(state.equipment)) {
     if (!inst) continue;
     const def = content.items[inst.itemId]!;
-    if (def.kind === "weapon" && inst.durability < def.durability) {
-      inst.durability++;
-      log(state, `mechanic repaired ${inst.itemId} +1`);
-      return;
-    }
+    if (def.kind !== "weapon" || inst.durability >= def.durability) continue;
+    if (!best || inst.durability < best.durability) best = inst;
   }
+  if (!best) return false;
+  best.durability++;
+  log(state, `mechanic repaired ${best.itemId} +1`);
+  return true;
 }
 
 export { BAND_CENTER };

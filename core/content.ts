@@ -100,6 +100,8 @@ export interface CombatBalance {
   mechanicRepairTicks: number;
   /** Стрелок на посту чинит свой разбитый ствол на 1 раз в столько тиков. */
   gunnerRepairTicks: number;
+  /** Цена «Залатать» в бою: запчастей за +1 прочности оружия. */
+  fieldRepairParts: number;
   medicHealTicks: number;
   /** Горение: урон 1 каждые burnEvery тиков. */
   burnEvery: number;
@@ -186,6 +188,7 @@ export interface SlotDef {
 export interface BusDef {
   id: string;
   nameKey: string;
+  descKey: string;
   rows: number;
   cols: number;
   /** Колонки у бортов: места там уязвимы. */
@@ -198,6 +201,12 @@ export interface BusDef {
   /** Корпус: на нуле автобус уничтожен. */
   hull: number;
   systems: { engine: number; wheels: number; cabin: number };
+  /** Множитель расхода топлива (по умолчанию 1). */
+  fuelMult?: number;
+  /** Прибавка к уклонению в бою (по умолчанию 0). */
+  evasionBonus?: number;
+  /** Прибавка к вместимости бака (по умолчанию 0). */
+  tankBonus?: number;
 }
 
 // ---------- Враги ----------

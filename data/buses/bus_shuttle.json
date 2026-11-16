@@ -1,0 +1,122 @@
+{
+  "id": "bus_shuttle",
+  "nameKey": "bus.bus_shuttle.name",
+  "descKey": "bus.bus_shuttle.desc",
+  "rows": 5,
+  "cols": 3,
+  "exposedCols": [
+    0,
+    2
+  ],
+  "seats": [
+    {
+      "id": "r0c0",
+      "row": 0,
+      "col": 0,
+      "role": "driver"
+    },
+    {
+      "id": "r0c2",
+      "row": 0,
+      "col": 2,
+      "role": "navigator"
+    },
+    {
+      "id": "r1c0",
+      "row": 1,
+      "col": 0,
+      "role": "weapon",
+      "slot": "sideL1"
+    },
+    {
+      "id": "r1c2",
+      "row": 1,
+      "col": 2,
+      "role": "weapon",
+      "slot": "sideR1"
+    },
+    {
+      "id": "r2c0",
+      "row": 2,
+      "col": 0,
+      "role": "plain"
+    },
+    {
+      "id": "r2c2",
+      "row": 2,
+      "col": 2,
+      "role": "plain"
+    },
+    {
+      "id": "r3c0",
+      "row": 3,
+      "col": 0,
+      "role": "plain"
+    },
+    {
+      "id": "r3c2",
+      "row": 3,
+      "col": 2,
+      "role": "weapon",
+      "slot": "roof"
+    },
+    {
+      "id": "r4c0",
+      "row": 4,
+      "col": 0,
+      "role": "mechanic"
+    },
+    {
+      "id": "r4c1",
+      "row": 4,
+      "col": 1,
+      "role": "medic"
+    },
+    {
+      "id": "r4c2",
+      "row": 4,
+      "col": 2,
+      "role": "weapon",
+      "slot": "rear"
+    }
+  ],
+  "slots": [
+    {
+      "id": "front",
+      "kind": "front"
+    },
+    {
+      "id": "sideL1",
+      "kind": "side"
+    },
+    {
+      "id": "sideR1",
+      "kind": "side"
+    },
+    {
+      "id": "roof",
+      "kind": "roof"
+    },
+    {
+      "id": "rear",
+      "kind": "rear"
+    },
+    {
+      "id": "int1",
+      "kind": "internal"
+    }
+  ],
+  "startEquipment": {
+    "roof": "wpn_mg",
+    "sideL1": "wpn_shotgun"
+  },
+  "tankDurability": 3,
+  "hull": 17,
+  "systems": {
+    "engine": 4,
+    "wheels": 3,
+    "cabin": 2
+  },
+  "fuelMult": 0.8,
+  "evasionBonus": 0.15
+}

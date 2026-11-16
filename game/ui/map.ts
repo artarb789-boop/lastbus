@@ -8,8 +8,8 @@ const W = 900;
 const H = 360;
 
 /** Наш автобус над текущим узлом: картинка ×1, если есть, иначе эмодзи. */
-function busMarker(): string {
-  const bus = art("buses/bus_city.png");
+function busMarker(busId: string): string {
+  const bus = art(`buses/${busId}.png`);
   if (!bus) return '<text class="bus" y="-26">🚌</text>';
   return `<image class="px" href="${bus.url}" x="${-bus.w / 2}" y="${-22 - bus.h}" width="${bus.w}" height="${bus.h}"/>`;
 }
@@ -71,7 +71,7 @@ export function renderMap(store: Store): string {
           <circle r="20"/>
           ${icon ? `<image class="px" href="${icon.url}" x="${-icon.w}" y="${-icon.h}" width="${icon.w * 2}" height="${icon.h * 2}"/>` : `<text dy="6">${label}</text>`}
           ${contested ? '<text class="flag" x="16" y="-14">⚑</text>' : ""}
-          ${n.id === state.nodeId ? busMarker() : ""}
+          ${n.id === state.nodeId ? busMarker(state.bus.id) : ""}
         </g>`;
     })
     .join("");

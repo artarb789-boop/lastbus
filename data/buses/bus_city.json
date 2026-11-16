@@ -1,6 +1,7 @@
 {
   "id": "bus_city",
   "nameKey": "bus.bus_city.name",
+  "descKey": "bus.bus_city.desc",
   "rows": 5,
   "cols": 5,
   "exposedCols": [

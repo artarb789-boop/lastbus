@@ -2,7 +2,7 @@ import { applyCommand, type Command } from "./commands";
 import type { Content } from "./content";
 import { boardPassengers } from "./crew";
 import { DEFAULT_DRIVER, driverStartPerks } from "./driver";
-import { makeItem } from "./equipment";
+import { makeItem, tankMax } from "./equipment";
 import { generateRegion } from "./map/generate";
 import { createNemesis } from "./nemesis";
 import { createRng } from "./rng";
@@ -79,6 +79,8 @@ export function newRun(seed: number, content: Content, opts: RunOptions = {}): R
       state.resources[key] = Math.max(0, state.resources[key] + (v ?? 0));
     }
   }
+  // Стартовое топливо не больше бака (у автобуса бак может быть меньше обычного).
+  state.resources.fuel = Math.min(state.resources.fuel, tankMax(state, content));
   boardPassengers(state, content, content.balance.startPassengers);
   return state;
 }

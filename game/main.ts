@@ -93,14 +93,23 @@ function onUi(action: string, value: string): void {
   switch (action) {
     case "newRun":
       ui.choosingDriver = true;
+      // На экране сразу отмечены текущие автобус и водитель.
+      ui.newBus = state.bus.id;
+      ui.newDriver = state.driver.id;
+      break;
+    case "pickBus":
+      ui.newBus = value;
       break;
     case "cancelDriver":
       ui.choosingDriver = false;
       break;
-    case "pickDriver": {
+    case "pickDriver":
+      ui.newDriver = value;
+      break;
+    case "startRun": {
       const inProgress = state.phase.type !== "over" && store.commands.length > 0;
       if (inProgress && !confirm("Начать новый забег? Текущий будет потерян.")) break;
-      startNewRun(store, value);
+      startNewRun(store, ui.newBus, ui.newDriver);
       break;
     }
     case "pickEdge": {

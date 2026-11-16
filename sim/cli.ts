@@ -2,6 +2,7 @@
  * Прогон ботов по многим seed и сводка по балансу.
  *   npm run sim -- --runs 2000 --bots careful,greedy,random --seed 1 --driver drv_trucker
  *   npm run sim -- --runs 2000 --bots careful --driver all      # сравнить водителей
+ *   npm run sim -- --runs 2000 --bots careful --bus all         # сравнить автобусы
  */
 import { loadContent } from "../tools/load-content";
 import { BOTS } from "./bots";
@@ -18,12 +19,15 @@ const botNames = arg("bots", Object.keys(BOTS).join(",")).split(",");
 const content = loadContent();
 const driverArg = arg("driver", "drv_trucker");
 const drivers = driverArg === "all" ? Object.keys(content.drivers).sort() : [driverArg];
+const busArg = arg("bus", "bus_city");
+const buses = busArg === "all" ? Object.keys(content.buses).sort() : [busArg];
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
 console.log(`Runs per bot: ${runs}, seeds ${firstSeed}..${firstSeed + runs - 1}\n`);
 
+for (const busId of buses)
 for (const driverId of drivers)
 for (const name of botNames) {
   const factory = BOTS[name];
@@ -56,7 +60,7 @@ for (const name of botNames) {
   let wins = 0;
 
   for (let k = 0; k < runs; k++) {
-    const { state } = runGame(firstSeed + k, factory, content, { driverId });
+    const { state } = runGame(firstSeed + k, factory, content, { busId, driverId });
     if (state.phase.type !== "over") continue;
     const key = `${state.phase.result}:${state.phase.reason}`;
     outcomes[key] = (outcomes[key] ?? 0) + 1;
@@ -82,7 +86,7 @@ for (const name of botNames) {
     series.nemesisDefeated!.push(state.nemesis.defeated ? 1 : 0);
   }
 
-  console.log(`== ${name} · ${driverId} ==`);
+  console.log(`== ${name} · ${busId} · ${driverId} ==`);
   console.log(`  win rate:          ${pct(wins / runs)}`);
   console.log(
     `  outcomes:          ${Object.entries(outcomes)

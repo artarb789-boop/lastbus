@@ -1,0 +1,172 @@
+{
+  "id": "bus_armored",
+  "nameKey": "bus.bus_armored.name",
+  "descKey": "bus.bus_armored.desc",
+  "rows": 4,
+  "cols": 5,
+  "exposedCols": [
+    0,
+    4
+  ],
+  "seats": [
+    {
+      "id": "r0c0",
+      "row": 0,
+      "col": 0,
+      "role": "driver"
+    },
+    {
+      "id": "r0c1",
+      "row": 0,
+      "col": 1,
+      "role": "navigator"
+    },
+    {
+      "id": "r0c3",
+      "row": 0,
+      "col": 3,
+      "role": "plain"
+    },
+    {
+      "id": "r0c4",
+      "row": 0,
+      "col": 4,
+      "role": "plain"
+    },
+    {
+      "id": "r1c0",
+      "row": 1,
+      "col": 0,
+      "role": "weapon",
+      "slot": "sideL1"
+    },
+    {
+      "id": "r1c1",
+      "row": 1,
+      "col": 1,
+      "role": "plain"
+    },
+    {
+      "id": "r1c3",
+      "row": 1,
+      "col": 3,
+      "role": "plain"
+    },
+    {
+      "id": "r1c4",
+      "row": 1,
+      "col": 4,
+      "role": "weapon",
+      "slot": "sideR1"
+    },
+    {
+      "id": "r2c0",
+      "row": 2,
+      "col": 0,
+      "role": "weapon",
+      "slot": "sideL2"
+    },
+    {
+      "id": "r2c1",
+      "row": 2,
+      "col": 1,
+      "role": "plain"
+    },
+    {
+      "id": "r2c3",
+      "row": 2,
+      "col": 3,
+      "role": "weapon",
+      "slot": "roof"
+    },
+    {
+      "id": "r2c4",
+      "row": 2,
+      "col": 4,
+      "role": "weapon",
+      "slot": "sideR2"
+    },
+    {
+      "id": "r3c0",
+      "row": 3,
+      "col": 0,
+      "role": "mechanic"
+    },
+    {
+      "id": "r3c1",
+      "row": 3,
+      "col": 1,
+      "role": "plain"
+    },
+    {
+      "id": "r3c2",
+      "row": 3,
+      "col": 2,
+      "role": "medic"
+    },
+    {
+      "id": "r3c3",
+      "row": 3,
+      "col": 3,
+      "role": "plain"
+    },
+    {
+      "id": "r3c4",
+      "row": 3,
+      "col": 4,
+      "role": "weapon",
+      "slot": "rear"
+    }
+  ],
+  "slots": [
+    {
+      "id": "front",
+      "kind": "front"
+    },
+    {
+      "id": "sideL1",
+      "kind": "side"
+    },
+    {
+      "id": "sideL2",
+      "kind": "side"
+    },
+    {
+      "id": "sideR1",
+      "kind": "side"
+    },
+    {
+      "id": "sideR2",
+      "kind": "side"
+    },
+    {
+      "id": "roof",
+      "kind": "roof"
+    },
+    {
+      "id": "rear",
+      "kind": "rear"
+    },
+    {
+      "id": "int1",
+      "kind": "internal"
+    },
+    {
+      "id": "int2",
+      "kind": "internal"
+    }
+  ],
+  "startEquipment": {
+    "roof": "wpn_mg",
+    "sideL1": "wpn_shotgun"
+  },
+  "tankDurability": 4,
+  "hull": 28,
+  "systems": {
+    "engine": 5,
+    "wheels": 4,
+    "cabin": 4
+  },
+  "fuelMult": 1.15,
+  "tankBonus": 20
+}

@@ -45,6 +45,7 @@ npm run typecheck
 npm run validate   # данные и картинки (art:check)
 npm run build      # сборка клиента в dist/
 npm run sim -- --runs 5000 --bots careful,greedy,random
+npm run sim -- --runs 2000 --bots careful --bus all   # сравнить автобусы
 npx tsx sim/tune.ts 2000   # сравнить варианты баланса без правки файлов
 npx tsx sim/trace.ts 3     # разобрать бои одного забега
 npm run pixelize -- assets/img/buses/bus_city_src.png   # сгенерированная картинка → пиксель-арт
