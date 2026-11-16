@@ -50,6 +50,7 @@ export const quietContent: Content = contentWith((c) => {
   c.balance.tank.hitChance = 0;
   c.balance.tank.hitChanceOnLoss = 0;
   c.balance.combat.ambushChance = 0;
+  c.balance.gangs.chance = 0;
   c.balance.nemesis.meetColumns = [];
   for (const r of Object.values(c.balance.roads)) r.wearChance = 0;
 });

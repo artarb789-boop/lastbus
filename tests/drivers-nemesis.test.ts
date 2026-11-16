@@ -31,8 +31,8 @@ describe("водители", () => {
     const speedOfEscape = (s: RunState) => {
       s.hull = { hp: 999, max: 999 };
       const cb = startCombat(s, c, "enemy_raider_minibus", "encounter");
-      cb.enemy.weapons.forEach((w) => (w.disabled = true));
-      cb.enemy.preferredRange = "far";
+      cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true));
+      cb.enemies[0]!.preferredRange = "far";
       cb.distance = 3;
       for (let k = 0; k < 10; k++) combatTick(s, c, cb);
       return cb.escape;
@@ -93,7 +93,7 @@ describe("заклятый соперник", () => {
     expect(s.phase.type).toBe("combat");
     if (s.phase.type === "combat") {
       expect(s.phase.combat.source).toBe("nemesis");
-      expect(s.phase.combat.enemy.name).toBe(s.nemesis.nameKey);
+      expect(s.phase.combat.enemies[0]!.name).toBe(s.nemesis.nameKey);
     }
   });
 
@@ -105,7 +105,7 @@ describe("заклятый соперник", () => {
     s.hull = { hp: 999, max: 999 };
     const cb = startCombat(s, c, first, "nemesis", s.nemesis.nameKey);
     s.phase = { type: "combat", combat: cb, then: { type: "route" } };
-    cb.enemy.hull.hp = 1; // сдастся на следующем тике
+    cb.enemies[0]!.hull.hp = 1; // сдастся на следующем тике
     applyCommand(s, { type: "advance", ticks: 1 }, c);
     expect(s.phase.type).toBe("loot");
     expect(s.nemesis).toMatchObject({ meetings: 1, level: 1, defeated: false });
@@ -121,7 +121,7 @@ describe("заклятый соперник", () => {
     s.nemesis.meetings = content.balance.nemesis.meetColumns.length - 1;
     const cb = startCombat(s, c, nemesisDef(s, content), "nemesis", s.nemesis.nameKey);
     s.phase = { type: "combat", combat: cb, then: { type: "route" } };
-    cb.enemy.hull.hp = 0;
+    cb.enemies[0]!.hull.hp = 0;
     applyCommand(s, { type: "advance", ticks: 1 }, c);
     const phase = s.phase as Phase;
     expect(phase.type).toBe("loot");

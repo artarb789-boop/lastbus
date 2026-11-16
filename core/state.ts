@@ -167,6 +167,8 @@ export interface PlayerWeaponState {
   target: TargetRef;
   /** Стрелок на посту чинит разбитый ствол: тики до следующей единицы прочности. */
   repairTimer: number;
+  /** По какому из врагов бьёт (индекс в combat.enemies). */
+  enemy: number;
 }
 
 export interface EnemyState {
@@ -185,7 +187,11 @@ export interface EnemyState {
   /** Сколько фаз босса уже сработало. */
   phasesDone: number;
   status: StatusTimers;
+  /** Выбыл из боя (в банде бой идёт, пока остался хоть один). */
+  out: EnemyOut | null;
 }
+
+export type EnemyOut = "destroyed" | "surrendered" | "fled";
 
 export type CombatResult = "won" | "surrendered" | "enemy_fled" | "escaped" | "lost";
 
@@ -202,7 +208,8 @@ export interface CombatState {
   /** Что механик чинит в первую очередь. */
   mechanicFocus: MechanicFocus;
   medicTimer: number;
-  enemy: EnemyState;
+  /** Враги в бою: один автобус или банда. Первый живой — ведущий, он задаёт дистанцию. */
+  enemies: EnemyState[];
 }
 
 export type MechanicFocus = "systems" | "weapons";

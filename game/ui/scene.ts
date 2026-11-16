@@ -2,7 +2,7 @@
  * Сцена боя: создаётся один раз на бой и дальше только обновляется,
  * поэтому анимации (дорога, покачивание, вспышки) идут непрерывно.
  */
-import { bandOf, isLeaking, type CombatState, type RangeBand, type RunState } from "../../core";
+import { bandOf, isLeaking, type CombatState, type EnemyState, type RangeBand } from "../../core";
 import { busSprite, enemyLook, playerLook } from "../art/buses";
 import { art, type ArtImage } from "../art/images";
 import { spriteSize, spriteUrl, type Sprite } from "../art/pixel";
@@ -20,6 +20,12 @@ const ENEMY_X0 = 290;
 const ENEMY_STEP = 150;
 /** Высота автобуса в игровых пикселях: по ней выравниваются колёса у картинок другой высоты. */
 const BUS_H = 24;
+/** Полосы врагов: смещение от позиции ведущего по дистанции. Дальние — выше и правее. */
+const LANES = [
+  { dx: 0, dy: -6 },
+  { dx: 70, dy: -46 },
+  { dx: 140, dy: -86 },
+];
 const BAND_LABEL: Record<RangeBand, string> = { contact: "вплотную", near: "близко", mid: "средняя", far: "далеко" };
 
 function dunePath(y: number, amp: number, seed: number): string {
@@ -93,11 +99,12 @@ interface Side {
 export class CombatScene {
   readonly el: SVGSVGElement;
   private player: Side;
-  private enemy: Side;
+  /** Автобусы врагов: первый — на ближней полосе, остальные — дальше и выше. */
+  private enemies: Side[] = [];
   private tether: SVGLineElement;
   private bands: SVGRectElement[] = [];
   private combat: CombatState | null = null;
-  private prev = { playerHull: 0, enemyHull: 0, playerCharges: [] as number[], enemyCharges: [] as number[] };
+  private prev = { playerHull: 0, enemyHulls: [] as number[], playerCharges: [] as number[], enemyCharges: [] as number[][] };
 
   constructor() {
     const el = document.createElementNS(SVG_NS, "svg");
@@ -135,7 +142,15 @@ export class CombatScene {
     });
     this.tether = el.querySelector(".tether")!;
     this.player = this.makeSide("player");
-    this.enemy = this.makeSide("enemy");
+  }
+
+  /** Создать стороны врагов под этот бой. Дальние полосы добавляются раньше, чтобы быть позади. */
+  private ensureEnemies(count: number): void {
+    if (this.enemies.length === count) return;
+    for (const side of this.enemies) side.root.remove();
+    const made: Side[] = [];
+    for (let i = count - 1; i >= 0; i--) made[i] = this.makeSide(`enemy lane-${i}`);
+    this.enemies = made;
   }
 
   private makeSide(cls: string): Side {
@@ -199,10 +214,10 @@ export class CombatScene {
   }
 
   /** Оружие врага, разложенное по креплениям (у врага слотов нет — только список). */
-  private enemyMounts(store: Store, c: CombatState): Mount[] {
-    const slots = enemyMountSlots(c.enemy.weapons.map((w) => w.itemId), store.content);
+  private enemyMounts(store: Store, e: EnemyState): Mount[] {
+    const slots = enemyMountSlots(e.weapons.map((w) => w.itemId), store.content);
     const out: Mount[] = [];
-    c.enemy.weapons.forEach((w, i) => {
+    e.weapons.forEach((w, i) => {
       const slot = slots[i];
       const img = weaponImage(w.itemId);
       if (slot && img) out.push({ slot, img, broken: w.hp <= 0 || w.disabled });
@@ -252,11 +267,11 @@ export class CombatScene {
     setTimeout(() => el.classList.remove(cls), ms);
   }
 
-  private floatDamage(side: Side, x: number, amount: number): void {
+  private floatDamage(side: Side, x: number, y: number, amount: number): void {
     const t = document.createElementNS(SVG_NS, "text");
     t.setAttribute("class", "dmg");
     t.setAttribute("x", String(x + side.width / 2));
-    t.setAttribute("y", String(BASE_Y - 4));
+    t.setAttribute("y", String(y - 4));
     t.textContent = `−${amount}`;
     this.el.appendChild(t);
     setTimeout(() => t.remove(), 900);
@@ -268,55 +283,65 @@ export class CombatScene {
     const c = state.phase.combat;
     const fresh = c !== this.combat;
     this.combat = c;
+    this.ensureEnemies(c.enemies.length);
 
     // Автобус игрока рисуется без оружия, оружие ставится поверх по точкам крепления.
     this.setLook(this.player, art(`buses/${state.bus.id}.png`) ?? fromSprite(busSprite(playerLook(state, content))));
     this.setMounts(this.player, this.playerMounts(store));
-    // Сгенерированный враг уже нарисован с оружием; врагу кодом оружие ставится так же, как игроку.
-    const enemyArt = art(`buses/${c.enemy.enemyId}.png`);
-    this.setLook(this.enemy, enemyArt ?? fromSprite(busSprite(enemyLook(c.enemy.enemyId))));
-    this.setMounts(this.enemy, enemyArt ? [] : this.enemyMounts(store, c));
-
-    const enemyX = ENEMY_X0 + c.distance * ENEMY_STEP;
     this.player.root.style.transform = `translate(${PLAYER_X}px, ${BASE_Y}px)`;
-    this.enemy.root.style.transform = `translate(${enemyX}px, ${BASE_Y - 6}px)`;
-    if (fresh) this.enemy.root.classList.add("no-anim");
-    else this.enemy.root.classList.remove("no-anim");
-
     this.player.hp.setAttribute("width", String((this.player.width * Math.max(0, state.hull.hp)) / state.hull.max));
-    this.enemy.hp.setAttribute("width", String((this.enemy.width * Math.max(0, c.enemy.hull.hp)) / c.enemy.hull.max));
-
     this.player.smoke.classList.toggle("on", state.hull.hp <= state.hull.max / 2);
-    this.enemy.smoke.classList.toggle("on", c.enemy.hull.hp <= c.enemy.hull.max / 2);
     this.player.fire.classList.toggle("on", c.status.burning.length > 0 || isLeaking(state));
-    this.enemy.fire.classList.toggle("on", c.enemy.status.burning.length > 0);
+
+    const baseX = ENEMY_X0 + c.distance * ENEMY_STEP;
+    c.enemies.forEach((e, i) => {
+      const side = this.enemies[i]!;
+      // Сгенерированный враг уже нарисован с оружием; врагу кодом оружие ставится так же, как игроку.
+      const enemyArt = art(`buses/${e.enemyId}.png`);
+      this.setLook(side, enemyArt ?? fromSprite(busSprite(enemyLook(e.enemyId))));
+      this.setMounts(side, enemyArt ? [] : this.enemyMounts(store, e));
+      const lane = LANES[Math.min(i, LANES.length - 1)]!;
+      side.root.style.transform = `translate(${baseX + lane.dx}px, ${BASE_Y + lane.dy}px)`;
+      side.root.classList.toggle("no-anim", fresh);
+      side.hp.setAttribute("width", String((side.width * Math.max(0, e.hull.hp)) / e.hull.max));
+      side.smoke.classList.toggle("on", e.out === null && e.hull.hp <= e.hull.max / 2);
+      side.fire.classList.toggle("on", e.out === null && e.status.burning.length > 0);
+      // Выбывшие: разбитый — тёмный остов, сдавшийся — бледный, ушедший — растворяется.
+      side.root.classList.toggle("out-destroyed", e.out === "destroyed");
+      side.root.classList.toggle("out-surrendered", e.out === "surrendered");
+      side.root.classList.toggle("out-fled", e.out === "fled");
+    });
 
     const band = bandOf(c.distance);
     this.bands.forEach((r, i) => r.classList.toggle("active", (["contact", "near", "mid", "far"] as RangeBand[])[i] === band));
 
-    const tethered = c.status.tethered > 0 || c.enemy.status.tethered > 0;
+    // Трос — к первому врагу, который сцеплен (или нас сцепил ведущий).
+    const tetheredIdx = c.enemies.findIndex((e) => e.out === null && e.status.tethered > 0);
+    const tethered = c.status.tethered > 0 || tetheredIdx >= 0;
+    const ti = Math.max(0, tetheredIdx);
+    const tLane = LANES[Math.min(ti, LANES.length - 1)]!;
     this.tether.classList.toggle("on", tethered);
     this.tether.setAttribute("x1", String(PLAYER_X + this.player.width - 10));
     this.tether.setAttribute("y1", String(BASE_Y + 30));
-    this.tether.setAttribute("x2", String(enemyX + 10));
-    this.tether.setAttribute("y2", String(BASE_Y + 24));
+    this.tether.setAttribute("x2", String(baseX + tLane.dx + 10));
+    this.tether.setAttribute("y2", String(BASE_Y + tLane.dy + 30));
 
     this.el.classList.toggle("paused", paused);
     // Гул мотора: при отходе и сближении мотор ревёт сильнее, сломанный — чихает.
     const rpm = c.maneuver === "hold" ? 1 : c.maneuver === "approach" ? 1.2 : 1.35;
     engineHum(true, { rpm, broken: state.systems.engine.hp <= 0, paused });
 
-    if (!fresh) this.effects(store, c, enemyX);
+    if (!fresh) this.effects(store, c, baseX);
     this.prev = {
       playerHull: state.hull.hp,
-      enemyHull: c.enemy.hull.hp,
+      enemyHulls: c.enemies.map((e) => e.hull.hp),
       playerCharges: c.weapons.map((w) => w.charge),
-      enemyCharges: c.enemy.weapons.map((w) => w.charge),
+      enemyCharges: c.enemies.map((e) => e.weapons.map((w) => w.charge)),
     };
   }
 
   /** Вспышки выстрелов и попаданий по разнице с прошлым кадром. */
-  private effects(store: Store, c: CombatState, enemyX: number): void {
+  private effects(store: Store, c: CombatState, baseX: number): void {
     const state = store.state;
     const firedAll = (now: number[], before: number[]) =>
       now.flatMap((ch, i) => (ch === 0 && (before[i] ?? 0) > 1 ? [i] : []));
@@ -327,23 +352,27 @@ export class CombatScene {
       const name = WEAPON_SFX[itemId];
       if (name) sfx(name, { pan: -0.5, delay: k * 0.04 });
     });
-    const ef = firedAll(c.enemy.weapons.map((w) => w.charge), this.prev.enemyCharges);
-    if (ef.length) this.flash(this.enemy, enemyMountSlots(c.enemy.weapons.map((w) => w.itemId), store.content)[ef[0]!] ?? "");
-    ef.forEach((i, k) => {
-      const name = WEAPON_SFX[c.enemy.weapons[i]!.itemId];
-      if (name) sfx(name, { pan: 0.5, gain: 0.7, delay: k * 0.04 });
+    c.enemies.forEach((e, ei) => {
+      const side = this.enemies[ei]!;
+      const ef = firedAll(e.weapons.map((w) => w.charge), this.prev.enemyCharges[ei] ?? []);
+      if (ef.length) this.flash(side, enemyMountSlots(e.weapons.map((w) => w.itemId), store.content)[ef[0]!] ?? "");
+      ef.forEach((i, k) => {
+        const name = WEAPON_SFX[e.weapons[i]!.itemId];
+        if (name) sfx(name, { pan: 0.5, gain: 0.7, delay: k * 0.04 + ei * 0.02 });
+      });
+      const lost = (this.prev.enemyHulls[ei] ?? e.hull.hp) - e.hull.hp;
+      if (lost > 0) {
+        const lane = LANES[Math.min(ei, LANES.length - 1)]!;
+        sfx("hitEnemy", { pan: 0.5, delay: 0.05 });
+        this.pulse(side.hit, "hit", 220);
+        this.floatDamage(side, baseX + lane.dx, BASE_Y + lane.dy, lost);
+      }
     });
     const playerLost = this.prev.playerHull - state.hull.hp;
-    const enemyLost = this.prev.enemyHull - c.enemy.hull.hp;
     if (playerLost > 0) {
       sfx("hitPlayer", { pan: -0.5, delay: 0.05 });
       this.pulse(this.player.hit, "hit", 220);
-      this.floatDamage(this.player, PLAYER_X, playerLost);
-    }
-    if (enemyLost > 0) {
-      sfx("hitEnemy", { pan: 0.5, delay: 0.05 });
-      this.pulse(this.enemy.hit, "hit", 220);
-      this.floatDamage(this.enemy, enemyX, enemyLost);
+      this.floatDamage(this.player, PLAYER_X, BASE_Y, playerLost);
     }
   }
 }

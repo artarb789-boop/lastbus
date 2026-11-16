@@ -209,7 +209,10 @@ app.addEventListener("click", (ev) => {
 
 app.addEventListener("change", (ev) => {
   const el = ev.target as HTMLSelectElement;
-  if (el.dataset.targetSlot) send({ type: "setTarget", slotId: el.dataset.targetSlot, target: el.value as TargetRef });
+  if (el.dataset.targetSlot) {
+    const [enemy, target] = el.value.split("|");
+    send({ type: "setTarget", slotId: el.dataset.targetSlot, target: target as TargetRef, enemy: Number(enemy) });
+  }
 });
 
 document.addEventListener("keydown", (ev) => {

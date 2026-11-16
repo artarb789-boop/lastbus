@@ -55,6 +55,8 @@ export interface Balance {
   garagePartsMult: number;
   sellMult: number;
   visibility: { base: number; navigatorBonus: number };
+  /** Банды из нескольких автобусов на встречах дальше по карте. */
+  gangs: { chance: number; minColumn: number; hullMult: number; pairs: string[][] };
   combat: CombatBalance;
   nemesis: NemesisBalance;
 }

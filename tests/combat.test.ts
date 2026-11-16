@@ -31,7 +31,7 @@ describe("дистанция", () => {
   it("манёвры сближают и разводят автобусы, дистанция в пределах 0..3", () => {
     const s = arena("enemy_raider_minibus");
     const cb = combatOf(s);
-    cb.enemy.preferredRange = "mid";
+    cb.enemies[0]!.preferredRange = "mid";
     cb.distance = 2;
     applyCommand(s, { type: "setManeuver", maneuver: "approach" }, c);
     applyCommand(s, { type: "advance", ticks: 10 }, c);
@@ -49,7 +49,7 @@ describe("оружие игрока", () => {
   it("заряжается только с занятым постом и стреляет, когда заряд полный", () => {
     const s = arena("enemy_rival_carrier");
     const cb = combatOf(s);
-    cb.enemy.weapons.forEach((w) => (w.disabled = true)); // враг не мешает
+    cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true)); // враг не мешает
     const mg = cb.weapons.find((w) => w.slotId === "roof")!;
     const charge = content.items.wpn_mg!.weapon!.charge;
 
@@ -69,11 +69,11 @@ describe("оружие игрока", () => {
   it("вне своей дистанции оружие держит заряд и не стреляет", () => {
     const s = arena("enemy_rival_carrier");
     const cb = combatOf(s);
-    cb.enemy.weapons.forEach((w) => (w.disabled = true));
-    cb.enemy.preferredRange = "near";
+    cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true));
+    cb.enemies[0]!.preferredRange = "near";
     cb.distance = 1; // пулемёт бьёт только mid/far
     applyCommand(s, { type: "setManeuver", maneuver: "hold" }, c);
-    const hull = cb.enemy.hull.hp;
+    const hull = cb.enemies[0]!.hull.hp;
     const mg = cb.weapons.find((w) => w.slotId === "roof")!;
     // Держим врага вблизи: обнуляем движение, двигая дистанцию вручную.
     for (let k = 0; k < 40; k++) {
@@ -82,7 +82,7 @@ describe("оружие игрока", () => {
     }
     expect(mg.charge).toBe(content.items.wpn_mg!.weapon!.charge);
     // Дробовик вблизи стреляет, а вот пулемёт нет: урон только от дробовика.
-    expect(cb.enemy.hull.hp).toBeLessThanOrEqual(hull);
+    expect(cb.enemies[0]!.hull.hp).toBeLessThanOrEqual(hull);
   });
 
   it("тяжёлое оружие тратит боеприпасы, без них не стреляет", () => {
@@ -90,7 +90,7 @@ describe("оружие игрока", () => {
     s.equipment.roof = makeItem(s, c, "wpn_rockets");
     const cb = startCombat(s, c, "enemy_rival_carrier", "encounter");
     s.phase = { type: "combat", combat: cb, then: { type: "route" } };
-    cb.enemy.weapons.forEach((w) => (w.disabled = true));
+    cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true));
     const rockets = cb.weapons.find((w) => w.slotId === "roof")!;
     const charge = content.items.wpn_rockets!.weapon!.charge;
 
@@ -111,8 +111,8 @@ describe("оружие игрока", () => {
     const s = arena("enemy_rival_carrier");
     const cb = combatOf(s);
     // Бой не должен закончиться: трофеи тоже дают боеприпасы.
-    cb.enemy.hull = { hp: 999, max: 999 };
-    cb.enemy.weapons.forEach((w) => (w.disabled = true));
+    cb.enemies[0]!.hull = { hp: 999, max: 999 };
+    cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true));
     s.resources.ammo = 5;
     applyCommand(s, { type: "advance", ticks: 100 }, c);
     expect(s.phase.type).toBe("combat");
@@ -122,16 +122,16 @@ describe("оружие игрока", () => {
   it("броня врага снижает урон, но каждое попадание наносит хотя бы 1", () => {
     const s = arena("enemy_rival_carrier"); // броня 1
     const cb = combatOf(s);
-    cb.enemy.weapons.forEach((w) => (w.disabled = true));
+    cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true));
     const deltas = new Set<number>();
-    for (let k = 0; k < 300 && cb.enemy.hull.hp > 3; k++) {
+    for (let k = 0; k < 300 && cb.enemies[0]!.hull.hp > 3; k++) {
       cb.distance = 2; // только пулемёт: 3 выстрела по 1
-      const before = cb.enemy.hull.hp;
+      const before = cb.enemies[0]!.hull.hp;
       combatTick(s, c, cb);
-      deltas.add(before - cb.enemy.hull.hp);
+      deltas.add(before - cb.enemies[0]!.hull.hp);
     }
     expect([...deltas].every((d) => d >= 0 && d <= 3)).toBe(true);
-    expect(cb.enemy.hull.hp).toBeLessThan(cb.enemy.hull.max);
+    expect(cb.enemies[0]!.hull.hp).toBeLessThan(cb.enemies[0]!.hull.max);
   });
 });
 
@@ -161,9 +161,9 @@ describe("урон по игроку", () => {
 
   it("ИИ показывает намерение: стрелок целится в оружие игрока, таранщик — в колёса", () => {
     const gunner = arena("enemy_raider_minibus");
-    expect(combatOf(gunner).enemy.weapons[0]!.target).toMatch(/^weapon:/);
+    expect(combatOf(gunner).enemies[0]!.weapons[0]!.target).toMatch(/^weapon:/);
     const rammer = arena("enemy_rammer");
-    expect(combatOf(rammer).enemy.weapons.every((w) => w.target === "wheels")).toBe(true);
+    expect(combatOf(rammer).enemies[0]!.weapons.every((w) => w.target === "wheels")).toBe(true);
   });
 });
 
@@ -171,8 +171,8 @@ describe("исходы боя", () => {
   it("победа даёт трофеи: ресурсы и уцелевшее оружие врага", () => {
     const s = arena("enemy_raider_minibus");
     const cb = combatOf(s);
-    cb.enemy.hull.hp = 1;
-    cb.enemy.weapons.forEach((w) => (w.disabled = true));
+    cb.enemies[0]!.hull.hp = 1;
+    cb.enemies[0]!.weapons.forEach((w) => (w.disabled = true));
     applyCommand(s, { type: "advance", ticks: 100 }, c);
     expect(s.phase.type).toBe("loot");
     if (s.phase.type !== "loot") return;
@@ -225,12 +225,12 @@ describe("исходы боя", () => {
   it("босс во второй фазе отключает часть оружия и идёт на таран", () => {
     const s = arena("enemy_boss_prison_bus");
     const cb = combatOf(s);
-    cb.enemy.hull.hp = Math.floor(cb.enemy.hull.max / 2);
+    cb.enemies[0]!.hull.hp = Math.floor(cb.enemies[0]!.hull.max / 2);
     combatTick(s, c, cb);
-    expect(cb.enemy.phasesDone).toBe(1);
-    expect(cb.enemy.weapons.filter((w) => w.disabled)).toHaveLength(2);
-    expect(cb.enemy.ai).toBe("berserk");
-    expect(cb.enemy.preferredRange).toBe("contact");
+    expect(cb.enemies[0]!.phasesDone).toBe(1);
+    expect(cb.enemies[0]!.weapons.filter((w) => w.disabled)).toHaveLength(2);
+    expect(cb.enemies[0]!.ai).toBe("berserk");
+    expect(cb.enemies[0]!.preferredRange).toBe("contact");
   });
 });
 
@@ -258,7 +258,7 @@ describe("бой в забеге", () => {
     expect(applyCommand(s, { type: "chooseRoute", edgeId: "e1", pace: "intercept" }, cc).ok).toBe(true);
     const cb = combatOf(s);
     expect(cb.source).toBe("intercept");
-    expect(content.enemies[cb.enemy.enemyId]!.kind).toBe("rival");
+    expect(content.enemies[cb.enemies[0]!.enemyId]!.kind).toBe("rival");
     fightOut(s, cc);
     expect(s.phase.type).toBe("stop");
   });
@@ -330,7 +330,7 @@ describe("ремонт оружия в бою", () => {
     s.equipment.roof!.durability = 0;
     expect(applyCommand(s, { type: "setMechanicFocus", focus: "weapons" }, c).ok).toBe(true);
     // Враг не стреляет: проверяем только ремонт.
-    for (const w of combatOf(s).enemy.weapons) w.disabled = true;
+    for (const w of combatOf(s).enemies[0]!.weapons) w.disabled = true;
     for (let k = 0; k < c.balance.combat.mechanicRepairTicks; k++) combatTick(s, c, combatOf(s));
     expect(s.equipment.roof!.durability).toBeGreaterThan(0);
     expect(s.systems.engine.hp).toBe(1);

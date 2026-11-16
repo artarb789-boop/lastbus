@@ -8,7 +8,20 @@ import { harm, hurtDriver, occupant } from "../crew";
 import { coveredSeats, itemDef, working } from "../equipment";
 import { log } from "../log";
 import { chance, pick } from "../rng";
-import type { CombatResult, CombatSource, CombatState, EnemyState, ItemInstance, Maneuver, MechanicFocus, PlayerWeaponState, RunState, StatusTimers, SystemHp, TargetRef } from "../state";
+import type {
+  CombatResult,
+  CombatSource,
+  CombatState,
+  EnemyState,
+  ItemInstance,
+  Maneuver,
+  MechanicFocus,
+  PlayerWeaponState,
+  RunState,
+  StatusTimers,
+  SystemHp,
+  TargetRef,
+} from "../state";
 import { driverEscapeMult, driverEvasionBonus } from "../driver";
 import { damageTank } from "../tank";
 import { BAND_CENTER, enemyIsFleeing, enemyManeuver, retargetEnemy } from "./ai";
@@ -30,20 +43,11 @@ function hp(max: number): SystemHp {
 
 // ---------- Начало боя ----------
 
-/** Начать бой. Враг — id из data/enemies или готовое описание (например, усиленный заклятый соперник). */
-export function startCombat(
-  state: RunState,
-  content: Content,
-  enemy: string | EnemyDef,
-  source: CombatSource,
-  name?: string,
-): CombatState {
+function makeEnemy(content: Content, enemy: string | EnemyDef, name?: string): EnemyState {
   const def = typeof enemy === "string" ? content.enemies[enemy] : enemy;
   if (!def) throw new Error(`unknown enemy ${String(enemy)}`);
-  const enemyId = def.id;
-  const b = content.balance.combat;
-  const enemyState: EnemyState = {
-    enemyId,
+  return {
+    enemyId: def.id,
     def: structuredClone(def),
     name: name ?? def.nameKey,
     hull: hp(def.hull),
@@ -58,10 +62,28 @@ export function startCombat(
     escape: 0,
     phasesDone: 0,
     status: emptyStatus(),
+    out: null,
   };
+}
+
+/**
+ * Начать бой. Враг — id из data/enemies или готовое описание (например, усиленный заклятый соперник),
+ * а для банды — список из нескольких.
+ */
+export function startCombat(
+  state: RunState,
+  content: Content,
+  enemy: string | EnemyDef | (string | EnemyDef)[],
+  source: CombatSource,
+  name?: string,
+): CombatState {
+  const list = Array.isArray(enemy) ? enemy : [enemy];
+  if (list.length === 0) throw new Error("no enemies");
+  const enemies = list.map((e, i) => makeEnemy(content, e, i === 0 ? name : undefined));
+  const b = content.balance.combat;
   const weapons: PlayerWeaponState[] = Object.entries(state.equipment)
     .filter(([, inst]) => inst && content.items[inst.itemId]?.kind === "weapon")
-    .map(([slotId]) => ({ slotId, charge: 0, target: "hull" as TargetRef, repairTimer: 0 }));
+    .map(([slotId]) => ({ slotId, charge: 0, target: "hull" as TargetRef, repairTimer: 0, enemy: 0 }));
 
   const combat: CombatState = {
     source,
@@ -75,15 +97,27 @@ export function startCombat(
     mechanicTimer: 0,
     mechanicFocus: "systems",
     medicTimer: 0,
-    enemy: enemyState,
+    enemies,
   };
-  if (source === "ambush") {
-    for (const w of enemyState.weapons) w.charge = Math.floor(content.items[w.itemId]!.weapon!.charge / 2);
+  for (const e of enemies) {
+    if (source === "ambush") {
+      for (const w of e.weapons) w.charge = Math.floor(content.items[w.itemId]!.weapon!.charge / 2);
+    }
+    retargetEnemy(state, content, e, true);
   }
-  retargetEnemy(state, content, combat, true);
   state.stats.fights += 1;
-  log(state, `combat (${source}) vs ${enemyId}`);
+  log(state, `combat (${source}) vs ${enemies.map((e) => e.enemyId).join(" + ")}`);
   return combat;
+}
+
+/** Враги, которые ещё в бою. */
+export function activeEnemies(combat: CombatState): EnemyState[] {
+  return combat.enemies.filter((e) => e.out === null);
+}
+
+/** Ведущий автобус: первый, кто ещё в бою (или первый вообще, если бой окончен). */
+export function leadEnemy(combat: CombatState): EnemyState {
+  return activeEnemies(combat)[0] ?? combat.enemies[0]!;
 }
 
 // ---------- Параметры сторон ----------
@@ -108,8 +142,8 @@ export function playerEvasion(state: RunState, content: Content): number {
   return ev + (state.bus.evasionBonus ?? 0) + driverEvasionBonus(state, content);
 }
 
-export function enemyEvasion(_content: Content, combat: CombatState): number {
-  return combat.enemy.systems.engine.hp > 0 ? combat.enemy.def.evasion : 0;
+export function enemyEvasion(_content: Content, enemy: EnemyState): number {
+  return enemy.systems.engine.hp > 0 ? enemy.def.evasion : 0;
 }
 
 function playerSpeed(state: RunState, combat: CombatState): number {
@@ -119,8 +153,7 @@ function playerSpeed(state: RunState, combat: CombatState): number {
   return v;
 }
 
-function enemySpeed(_content: Content, combat: CombatState): number {
-  const e = combat.enemy;
+function enemySpeed(_content: Content, e: EnemyState): number {
   if (e.systems.engine.hp <= 0) return 0;
   let v = e.def.speed * (e.systems.wheels.hp > 0 ? 1 : 0.5);
   if (e.status.slowed > 0) v *= 0.5;
@@ -143,8 +176,7 @@ export function canEscape(combat: CombatState, content: Content): boolean {
 
 // ---------- Урон ----------
 
-function hitEnemy(_content: Content, combat: CombatState, target: TargetRef, dmg: number, armored: boolean): void {
-  const e = combat.enemy;
+function hitEnemy(_content: Content, e: EnemyState, target: TargetRef, dmg: number, armored: boolean): void {
   // Броня снижает урон, но попадание всегда наносит хотя бы 1.
   const d = armored && dmg > 0 ? Math.max(1, dmg - e.def.armor) : dmg;
   if (d <= 0) return;
@@ -214,8 +246,7 @@ function applyEffects(status: StatusTimers, target: TargetRef, effects: WeaponEf
 
 // ---------- Фазы босса ----------
 
-function applyPhase(state: RunState, content: Content, combat: CombatState, effects: EnemyPhaseEffect[]): void {
-  const e = combat.enemy;
+function applyPhase(state: RunState, content: Content, e: EnemyState, effects: EnemyPhaseEffect[]): void {
   for (const eff of effects) {
     if (eff.type === "disableWeapons") {
       let left = eff.count;
@@ -230,7 +261,7 @@ function applyPhase(state: RunState, content: Content, combat: CombatState, effe
     if (eff.type === "setAi") e.ai = eff.ai;
     if (eff.type === "setPreferredRange") e.preferredRange = eff.range;
   }
-  retargetEnemy(state, content, combat, true);
+  retargetEnemy(state, content, e, true);
   log(state, `enemy phase ${e.phasesDone}`);
 }
 
@@ -239,38 +270,36 @@ function applyPhase(state: RunState, content: Content, combat: CombatState, effe
 /** Один тик боя. Возвращает исход, если бой закончился. */
 export function combatTick(state: RunState, content: Content, combat: CombatState): CombatResult | null {
   const b = content.balance.combat;
-  const e = combat.enemy;
-  const def = e.def;
   combat.tick += 1;
+  const active = activeEnemies(combat);
+  const lead = leadEnemy(combat);
 
   // 1. Статусы и горение.
-  for (const [status, isPlayer] of [
-    [combat.status, true],
-    [e.status, false],
-  ] as const) {
+  const tickStatus = (status: StatusTimers, burnHit: (target: TargetRef) => void) => {
     if (status.tethered > 0) status.tethered--;
     if (status.slowed > 0) status.slowed--;
     for (const burn of status.burning) {
       burn.ticks--;
-      if (combat.tick % b.burnEvery === 0) {
-        if (isPlayer) hitPlayer(state, content, burn.target, 1, false);
-        else hitEnemy(content, combat, burn.target, 1, false);
-      }
+      if (combat.tick % b.burnEvery === 0) burnHit(burn.target);
     }
     status.burning = status.burning.filter((x) => x.ticks > 0);
-  }
+  };
+  tickStatus(combat.status, (target) => hitPlayer(state, content, target, 1, false));
+  for (const e of active) tickStatus(e.status, (target) => hitEnemy(content, e, target, 1, false));
 
   // 2. Фазы босса.
-  const phases = def.phases ?? [];
-  while (e.phasesDone < phases.length && e.hull.hp <= phases[e.phasesDone]!.atHull * e.hull.max) {
-    e.phasesDone++;
-    applyPhase(state, content, combat, phases[e.phasesDone - 1]!.effects);
+  for (const e of active) {
+    const phases = e.def.phases ?? [];
+    while (e.phasesDone < phases.length && e.hull.hp <= phases[e.phasesDone]!.atHull * e.hull.max) {
+      e.phasesDone++;
+      applyPhase(state, content, e, phases[e.phasesDone - 1]!.effects);
+    }
   }
 
-  // 3. Движение.
-  e.maneuver = enemyManeuver(content, combat);
-  const tethered = combat.status.tethered > 0 || e.status.tethered > 0;
-  let delta = b.distanceStep * (DIR[combat.maneuver] * playerSpeed(state, combat) + DIR[e.maneuver] * enemySpeed(content, combat));
+  // 3. Движение: дистанцию задаёт ведущий, остальные держатся рядом с ним.
+  for (const e of active) e.maneuver = enemyManeuver(content, e, combat.distance);
+  const tethered = combat.status.tethered > 0 || active.some((e) => e.status.tethered > 0);
+  let delta = b.distanceStep * (DIR[combat.maneuver] * playerSpeed(state, combat) + DIR[lead.maneuver] * enemySpeed(content, lead));
   if (tethered && delta > 0) delta = 0;
   combat.distance = Math.max(0, Math.min(3, combat.distance + delta));
   const band = bandOf(combat.distance);
@@ -281,9 +310,14 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
     if (state.systems.engine.hp > 0) {
       combat.escape = Math.min(b.escapeTicks, combat.escape + escapeRate * driverEscapeMult(state, content));
     }
-    if (enemyIsFleeing(content, combat) && e.systems.engine.hp > 0) {
-      e.escape += escapeRate;
-      if (e.escape >= b.escapeTicks) return "enemy_fled";
+    for (const e of active) {
+      if (enemyIsFleeing(content, e) && e.systems.engine.hp > 0 && e.status.tethered <= 0) {
+        e.escape += escapeRate;
+        if (e.escape >= b.escapeTicks) {
+          e.out = "fled";
+          log(state, `${e.enemyId} fled`);
+        }
+      }
     }
   }
 
@@ -328,57 +362,86 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
       continue;
     }
     if (!weaponManned(state, w.slotId)) continue;
+    // Цель выбыла — переводим ствол на следующего врага, по корпусу.
+    let foe = combat.enemies[w.enemy];
+    if (!foe || foe.out !== null) {
+      const next = activeEnemies(combat)[0];
+      if (!next) continue;
+      w.enemy = combat.enemies.indexOf(next);
+      w.target = "hull";
+      foe = next;
+    }
     const stats = itemDef(content, inst).weapon!;
     w.charge = Math.min(stats.charge, w.charge + 1);
     if (w.charge < stats.charge || !stats.ranges.includes(band) || state.resources.ammo < stats.ammoPerVolley) continue;
 
     state.resources.ammo -= stats.ammoPerVolley;
     w.charge = 0;
-    const p = clampHit(stats.accuracy - enemyEvasion(content, combat));
+    const p = clampHit(stats.accuracy - enemyEvasion(content, foe));
     let hits = 0;
     for (let k = 0; k < stats.shots; k++) {
       if (chance(state.rng, p)) {
         hits++;
-        hitEnemy(content, combat, w.target, stats.damage, true);
+        hitEnemy(content, foe, w.target, stats.damage, true);
       }
     }
-    if (hits > 0) applyEffects(e.status, w.target, stats.effects);
+    if (hits > 0) applyEffects(foe.status, w.target, stats.effects);
     if (stats.selfDamage) state.hull.hp = Math.max(0, state.hull.hp - stats.selfDamage);
   }
 
-  // 7. Оружие врага.
-  retargetEnemy(state, content, combat);
-  for (const w of e.weapons) {
-    if (w.disabled || w.hp <= 0) {
-      w.charge = 0;
-      continue;
-    }
-    // Разбитая кабина — экипаж врага работает вдвое медленнее.
-    if (e.systems.cabin.hp <= 0 && combat.tick % 2 === 1) continue;
-    const stats = content.items[w.itemId]!.weapon!;
-    w.charge = Math.min(stats.charge, w.charge + 1);
-    if (w.charge < stats.charge || !stats.ranges.includes(band)) continue;
-    w.charge = 0;
-    const p = clampHit(stats.accuracy * b.enemyAccuracyMult - playerEvasion(state, content));
-    let hits = 0;
-    for (let k = 0; k < stats.shots; k++) {
-      if (chance(state.rng, p)) {
-        hits++;
-        hitPlayer(state, content, w.target, stats.damage, true);
+  // 7. Оружие врагов.
+  for (const e of activeEnemies(combat)) {
+    retargetEnemy(state, content, e);
+    for (const w of e.weapons) {
+      if (w.disabled || w.hp <= 0) {
+        w.charge = 0;
+        continue;
       }
+      // Разбитая кабина — экипаж врага работает вдвое медленнее.
+      if (e.systems.cabin.hp <= 0 && combat.tick % 2 === 1) continue;
+      const stats = content.items[w.itemId]!.weapon!;
+      w.charge = Math.min(stats.charge, w.charge + 1);
+      if (w.charge < stats.charge || !stats.ranges.includes(band)) continue;
+      w.charge = 0;
+      const p = clampHit(stats.accuracy * b.enemyAccuracyMult - playerEvasion(state, content));
+      let hits = 0;
+      for (let k = 0; k < stats.shots; k++) {
+        if (chance(state.rng, p)) {
+          hits++;
+          hitPlayer(state, content, w.target, stats.damage, true);
+        }
+      }
+      if (hits > 0) applyEffects(combat.status, w.target, stats.effects);
+      if (stats.selfDamage) e.hull.hp = Math.max(0, e.hull.hp - stats.selfDamage);
     }
-    if (hits > 0) applyEffects(combat.status, w.target, stats.effects);
-    if (stats.selfDamage) e.hull.hp = Math.max(0, e.hull.hp - stats.selfDamage);
   }
 
   // 8. Исход.
   if (state.phase.type === "over") return "lost"; // водитель погиб
   if (state.hull.hp <= 0) return "lost";
-  if (e.hull.hp <= 0) return "won";
-  if (def.surrenderAtHull !== undefined && e.hull.hp <= def.surrenderAtHull * e.hull.max) return "surrendered";
-  // Затянувшийся бой: обычный враг уходит, босс дорогу не уступает.
-  if (combat.tick >= b.maxTicks) return combat.source === "boss" ? "lost" : "enemy_fled";
-  return null;
+  for (const e of activeEnemies(combat)) {
+    if (e.hull.hp <= 0) {
+      e.out = "destroyed";
+      log(state, `${e.enemyId} destroyed`);
+    } else if (e.def.surrenderAtHull !== undefined && e.hull.hp <= e.def.surrenderAtHull * e.hull.max) {
+      e.out = "surrendered";
+      log(state, `${e.enemyId} surrendered`);
+    }
+  }
+  // Затянувшийся бой: обычные враги уходят, босс дорогу не уступает.
+  if (combat.tick >= b.maxTicks) {
+    if (combat.source === "boss") return "lost";
+    for (const e of activeEnemies(combat)) e.out = "fled";
+  }
+  if (activeEnemies(combat).length > 0) return null;
+  return combatOutcome(combat);
+}
+
+/** Исход боя, когда все враги выбыли: хоть один разбит — победа, иначе сдача, иначе все ушли. */
+export function combatOutcome(combat: CombatState): CombatResult {
+  if (combat.enemies.some((e) => e.out === "destroyed")) return "won";
+  if (combat.enemies.some((e) => e.out === "surrendered")) return "surrendered";
+  return "enemy_fled";
 }
 
 function clampHit(p: number): number {

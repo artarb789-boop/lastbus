@@ -185,21 +185,26 @@ function combatCommand(state: RunState, content: Content, style: "careful" | "gr
     if (c.maneuver !== maneuver) return { type: "setManeuver", maneuver };
   }
 
-  // Осторожный выбивает оружие врага (самое опасное первым), жадный бьёт в корпус.
+  // Осторожный выбивает оружие врагов (самое опасное первым), жадный бьёт в корпус ведущего.
   let desired: TargetRef = "hull";
+  let foe = c.enemies.findIndex((e) => e.out === null);
   if (style === "careful") {
     let bestDmg = -1;
-    c.enemy.weapons.forEach((w, i) => {
-      if (w.hp <= 0 || w.disabled) return;
-      const dmg = content.items[w.itemId]!.weapon!.damage * content.items[w.itemId]!.weapon!.shots;
-      if (dmg > bestDmg) {
-        bestDmg = dmg;
-        desired = `weapon:${i}`;
-      }
+    c.enemies.forEach((e, ei) => {
+      if (e.out !== null) return;
+      e.weapons.forEach((w, i) => {
+        if (w.hp <= 0 || w.disabled) return;
+        const dmg = content.items[w.itemId]!.weapon!.damage * content.items[w.itemId]!.weapon!.shots;
+        if (dmg > bestDmg) {
+          bestDmg = dmg;
+          desired = `weapon:${i}`;
+          foe = ei;
+        }
+      });
     });
   }
   for (const w of c.weapons) {
-    if (w.target !== desired) return { type: "setTarget", slotId: w.slotId, target: desired };
+    if (w.target !== desired || w.enemy !== foe) return { type: "setTarget", slotId: w.slotId, target: desired, enemy: foe };
   }
   return { type: "advance", ticks: 5 };
 }
@@ -362,8 +367,12 @@ export const randomBot: BotFactory = (seed) => {
         if (roll === 0 && canEscape(c, content)) return { type: "escape" };
         if (roll === 1) return { type: "setManeuver", maneuver: pick(rng, ["approach", "hold", "retreat"] as const) };
         if (roll === 2 && c.weapons.length > 0) {
-          const targets: TargetRef[] = ["hull", "engine", "wheels", "cabin", "tank", ...c.enemy.weapons.map((_, i) => `weapon:${i}` as TargetRef)];
-          return { type: "setTarget", slotId: pick(rng, c.weapons).slotId, target: pick(rng, targets) };
+          const foes = c.enemies.map((e, i) => ({ e, i })).filter((x) => x.e.out === null);
+          if (foes.length > 0) {
+            const { e, i: enemy } = pick(rng, foes);
+            const targets: TargetRef[] = ["hull", "engine", "wheels", "cabin", "tank", ...e.weapons.map((_, i) => `weapon:${i}` as TargetRef)];
+            return { type: "setTarget", slotId: pick(rng, c.weapons).slotId, target: pick(rng, targets), enemy };
+          }
         }
         return { type: "advance", ticks: int(rng, 1, 10) };
       }

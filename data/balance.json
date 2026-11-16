@@ -143,13 +143,36 @@
     "base": 2,
     "navigatorBonus": 1
   },
+  "gangs": {
+    "chance": 0.3,
+    "minColumn": 3,
+    "hullMult": 0.75,
+    "pairs": [
+      [
+        "enemy_raider_minibus",
+        "enemy_raider_sawnoff"
+      ],
+      [
+        "enemy_raider_minibus",
+        "enemy_raider_minibus"
+      ],
+      [
+        "enemy_rammer",
+        "enemy_raider_minibus"
+      ],
+      [
+        "enemy_siphoners",
+        "enemy_raider_sawnoff"
+      ]
+    ]
+  },
   "combat": {
     "tickSeconds": 0.5,
     "startDistance": 2,
     "distanceStep": 0.04,
     "escapeTicks": 40,
     "escapeMidRate": 0.5,
-    "enemyAccuracyMult": 0.95,
+    "enemyAccuracyMult": 0.8,
     "evasion": {
       "base": 0.05,
       "engine": 0.1,

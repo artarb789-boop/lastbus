@@ -9,7 +9,7 @@ export {
   type CommandResult,
   type RepairableSystem,
 } from "./commands";
-export { bandOf, canEscape, enemyEvasion, playerEvasion, startCombat, weaponManned } from "./combat/engine";
+export { activeEnemies, bandOf, canEscape, combatOutcome, enemyEvasion, leadEnemy, playerEvasion, startCombat, weaponManned } from "./combat/engine";
 export { newRun, replay, DEFAULT_BUS, type RunOptions } from "./run";
 export { DEFAULT_DRIVER, driverDef } from "./driver";
 export { isFinalMeeting } from "./nemesis";

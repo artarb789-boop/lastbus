@@ -63,7 +63,7 @@ describe("бак", () => {
     s.resources.fuel = 50;
     s.hull = { hp: 999, max: 999 };
     const combat = startCombat(s, c, "enemy_siphoners", "encounter");
-    expect(combat.enemy.weapons.every((w) => w.target === "tank")).toBe(true);
+    expect(combat.enemies[0]!.weapons.every((w) => w.target === "tank")).toBe(true);
     s.phase = { type: "combat", combat, then: { type: "route" } };
     combat.distance = 1; // вблизи бьёт огнемёт сливщиков
     for (let k = 0; k < 600 && !isLeaking(s); k++) combatTick(s, c, combat);

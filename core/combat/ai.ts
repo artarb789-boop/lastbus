@@ -4,7 +4,7 @@
  */
 import type { AiProfile, Content, RangeBand } from "../content";
 import { pick } from "../rng";
-import type { CombatState, Maneuver, RunState, TargetRef } from "../state";
+import type { EnemyState, Maneuver, RunState, TargetRef } from "../state";
 
 export const BAND_CENTER: Record<RangeBand, number> = { contact: 0, near: 1, mid: 2, far: 3 };
 
@@ -45,8 +45,7 @@ function preferredTarget(state: RunState, content: Content, ai: AiProfile): Targ
 }
 
 /** Обновить цели оружия врага, если нынешняя цель уничтожена или профиль сменился. */
-export function retargetEnemy(state: RunState, content: Content, combat: CombatState, force = false): void {
-  const enemy = combat.enemy;
+export function retargetEnemy(state: RunState, content: Content, enemy: EnemyState, force = false): void {
   const current = enemy.weapons[0]?.target ?? "hull";
   // Все стволы врага бьют в одну цель — так намерение читается одной строкой.
   if (!force && playerTargetAlive(state, current) && current !== "hull") return;
@@ -56,16 +55,16 @@ export function retargetEnemy(state: RunState, content: Content, combat: CombatS
   for (const w of enemy.weapons) w.target = next;
 }
 
-export function enemyIsFleeing(_content: Content, combat: CombatState): boolean {
-  const def = combat.enemy.def;
-  return def.fleeAtHull !== undefined && combat.enemy.hull.hp <= def.fleeAtHull * combat.enemy.hull.max;
+export function enemyIsFleeing(_content: Content, enemy: EnemyState): boolean {
+  const def = enemy.def;
+  return def.fleeAtHull !== undefined && enemy.hull.hp <= def.fleeAtHull * enemy.hull.max;
 }
 
 /** Манёвр врага: тянется к предпочитаемой дистанции, при бегстве — уходит. */
-export function enemyManeuver(content: Content, combat: CombatState): Maneuver {
-  if (enemyIsFleeing(content, combat)) return "retreat";
-  const want = BAND_CENTER[combat.enemy.preferredRange];
-  if (combat.distance > want + 0.3) return "approach";
-  if (combat.distance < want - 0.3) return "retreat";
+export function enemyManeuver(content: Content, enemy: EnemyState, distance: number): Maneuver {
+  if (enemyIsFleeing(content, enemy)) return "retreat";
+  const want = BAND_CENTER[enemy.preferredRange];
+  if (distance > want + 0.3) return "approach";
+  if (distance < want - 0.3) return "retreat";
   return "hold";
 }

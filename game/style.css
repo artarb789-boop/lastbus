@@ -210,3 +210,15 @@ h4 { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: upp
 button.big { font-size: 16px; padding: 10px 18px; }
 
 .bar.repair > span { background: var(--blue); }
+
+/* Выбывшие из боя враги банды */
+.scene .vehicle .bob { transition: opacity 1.2s, filter 0.6s; }
+.scene .vehicle.out-destroyed .bob { filter: grayscale(1) brightness(0.45); }
+.scene .vehicle.out-surrendered .bob { opacity: 0.55; }
+.scene .vehicle.out-fled .bob { opacity: 0; }
+.scene .vehicle.out-destroyed .hp, .scene .vehicle.out-destroyed .hpbg,
+.scene .vehicle.out-fled .hp, .scene .vehicle.out-fled .hpbg { display: none; }
+
+.enemy-card + .enemy-card { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 6px; }
+.enemy-card h4 { margin: 4px 0; }
+.enemy-card.out h4 { opacity: 0.6; }

@@ -82,7 +82,8 @@
     "stopEventChance",
     "tank",
     "combat",
-    "nemesis"
+    "nemesis",
+    "gangs"
   ],
   "properties": {
     "startResources": {
@@ -548,6 +549,43 @@
         },
         "finalTrophy": {
           "$ref": "common#/definitions/id"
+        }
+      }
+    },
+    "gangs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chance",
+        "minColumn",
+        "hullMult",
+        "pairs"
+      ],
+      "description": "Банды из нескольких автобусов на встречах",
+      "properties": {
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minColumn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hullMult": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pairs": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": {
+              "$ref": "common#/definitions/id"
+            }
+          }
         }
       }
     }

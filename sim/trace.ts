@@ -20,7 +20,7 @@ for (let step = 0; step < 3000 && state.phase.type !== "over"; step++) {
     before = { ammo: state.resources.ammo, hull: state.hull.hp, tick: 0 };
     const c = state.phase.combat;
     console.log(
-      `FIGHT ${c.source} vs ${c.enemy.enemyId} | hull ${state.hull.hp}/${state.hull.max} ammo ${state.resources.ammo} ` +
+      `FIGHT ${c.source} vs ${c.enemies.map((e) => e.enemyId).join("+")} | hull ${state.hull.hp}/${state.hull.max} ammo ${state.resources.ammo} ` +
         `weapons ${c.weapons.map((w) => `${w.slotId}:${state.equipment[w.slotId]?.itemId}`).join(",")} ` +
         `crew ${state.passengers.map((p) => `${p.seat}/${p.status[0]}`).join(" ")}`,
     );
@@ -33,9 +33,11 @@ for (let step = 0; step < 3000 && state.phase.type !== "over"; step++) {
     if (c.tick % 40 === 0 && c.tick !== before.tick) {
       before.tick = c.tick;
       console.log(
-        `  t${c.tick} dist ${c.distance.toFixed(2)} man ${c.maneuver}/${c.enemy.maneuver} | me hull ${state.hull.hp} ammo ${state.resources.ammo} ` +
-          `charges ${c.weapons.map((w) => w.charge).join("/")} | enemy hull ${c.enemy.hull.hp}/${c.enemy.hull.max} ` +
-          `weapons ${c.enemy.weapons.map((w) => `${w.itemId}:${w.hp}`).join(",")} target ${c.enemy.weapons[0]?.target}`,
+        `  t${c.tick} dist ${c.distance.toFixed(2)} man ${c.maneuver} | me hull ${state.hull.hp} ammo ${state.resources.ammo} ` +
+          `charges ${c.weapons.map((w) => w.charge).join("/")} | ` +
+          c.enemies
+            .map((e) => `${e.enemyId} ${e.out ?? "in"} hull ${e.hull.hp}/${e.hull.max} weapons ${e.weapons.map((w) => `${w.itemId}:${w.hp}`).join(",")} → ${e.weapons[0]?.target}`)
+            .join(" ; "),
       );
     }
   }

@@ -53,7 +53,8 @@ export type Command =
   | { type: "heal" }
   | { type: "repair"; uid: string }
   | { type: "repairSystem"; system: RepairableSystem }
-  | { type: "setTarget"; slotId: string; target: TargetRef }
+  /** enemy — индекс врага в банде (по умолчанию тот же, что сейчас). */
+  | { type: "setTarget"; slotId: string; target: TargetRef; enemy?: number }
   | { type: "setManeuver"; maneuver: Maneuver }
   /** Залатать оружие в бою за запчасти: +1 прочности. */
   | { type: "fieldRepair"; slotId: string }
@@ -99,7 +100,7 @@ export function applyCommand(state: RunState, cmd: Command, content: Content): C
     case "repairSystem":
       return repairSystemCmd(state, content, cmd.system);
     case "setTarget":
-      return setTargetCmd(state, cmd.slotId, cmd.target);
+      return setTargetCmd(state, cmd.slotId, cmd.target, cmd.enemy);
     case "setManeuver":
       return setManeuverCmd(state, cmd.maneuver);
     case "fieldRepair":
@@ -220,7 +221,7 @@ function arrive(state: RunState, content: Content, pace: Pace): void {
   }
 
   if (kind === "encounter") {
-    beginCombat(state, content, ["raider", "rival"], "encounter", { type: "route" });
+    beginEncounter(state, content);
     return;
   }
 
@@ -349,17 +350,39 @@ function beginCombat(state: RunState, content: Content, kinds: EnemyKind[], sour
   state.phase = { type: "combat", combat, then };
 }
 
+/** Встреча на дороге: дальше по карте вместо одного автобуса может выйти банда из двух. */
+function beginEncounter(state: RunState, content: Content): void {
+  const g = content.balance.gangs;
+  const column = findNode(state.map, state.nodeId).column;
+  if (g.pairs.length > 0 && column >= g.minColumn && chance(state.rng, g.chance)) {
+    const pair = pick(state.rng, g.pairs);
+    const combat = startCombat(state, content, pair, "encounter");
+    // Банда слабее поодиночке: каждый автобус легче обычного.
+    for (const e of combat.enemies) {
+      e.hull.max = Math.max(1, Math.round(e.hull.max * g.hullMult));
+      e.hull.hp = e.hull.max;
+    }
+    state.phase = { type: "combat", combat, then: { type: "route" } };
+    return;
+  }
+  beginCombat(state, content, ["raider", "rival"], "encounter", { type: "route" });
+}
+
 const SYSTEM_TARGETS = new Set(["hull", "engine", "wheels", "cabin", "tank"]);
 
-function setTargetCmd(state: RunState, slotId: string, target: TargetRef): CommandResult {
+function setTargetCmd(state: RunState, slotId: string, target: TargetRef, enemy?: number): CommandResult {
   if (state.phase.type !== "combat") return fail("wrong_phase");
   const combat = state.phase.combat;
   const w = combat.weapons.find((x) => x.slotId === slotId);
   if (!w) return fail("unknown_weapon");
+  const enemyIndex = enemy ?? w.enemy;
+  const foe = combat.enemies[enemyIndex];
+  if (!foe || foe.out !== null) return fail("bad_target");
   if (!SYSTEM_TARGETS.has(target)) {
     const idx = target.startsWith("weapon:") ? Number(target.slice(7)) : NaN;
-    if (!Number.isInteger(idx) || !combat.enemy.weapons[idx]) return fail("bad_target");
+    if (!Number.isInteger(idx) || !foe.weapons[idx]) return fail("bad_target");
   }
+  w.enemy = enemyIndex;
   w.target = target;
   return OK;
 }
@@ -414,17 +437,21 @@ function escapeCmd(state: RunState, content: Content): CommandResult {
   return OK;
 }
 
-function rollLoot(state: RunState, content: Content, combat: CombatState, share: number): Partial<Resources> {
-  const def = combat.enemy.def;
+/** Трофеи со всех разбитых (целиком) и сдавшихся (половина) врагов. */
+function rollLoot(state: RunState, content: Content, combat: CombatState): Partial<Resources> {
   const got: Partial<Resources> = {};
   const fuelBefore = state.resources.fuel;
-  for (const k of RESOURCE_KINDS) {
-    const r = def.loot.resources[k];
-    if (!r) continue;
-    const amount = Math.floor(int(state.rng, r[0], r[1]) * share);
-    if (amount <= 0) continue;
-    state.resources[k] += amount;
-    got[k] = amount;
+  for (const e of combat.enemies) {
+    const share = e.out === "destroyed" ? 1 : e.out === "surrendered" ? 0.5 : 0;
+    if (share === 0) continue;
+    for (const k of RESOURCE_KINDS) {
+      const r = e.def.loot.resources[k];
+      if (!r) continue;
+      const amount = Math.floor(int(state.rng, r[0], r[1]) * share);
+      if (amount <= 0) continue;
+      state.resources[k] += amount;
+      got[k] = (got[k] ?? 0) + amount;
+    }
   }
   // Топливо сверх бака не заливается.
   state.resources.fuel = Math.min(state.resources.fuel, Math.max(tankMax(state, content), fuelBefore));
@@ -442,13 +469,12 @@ function endCombat(state: RunState, content: Content, combat: CombatState, then:
   const extraItems = combat.source === "nemesis" ? afterNemesisFight(state, content, result) : [];
   if (result === "won" || result === "surrendered") {
     state.stats.fightsWon += 1;
-    const def = combat.enemy.def;
-    const won = result === "won";
+    const destroyed = combat.enemies.filter((e) => e.out === "destroyed");
     const loot: LootOffer = {
-      resources: rollLoot(state, content, combat, won ? 1 : 0.5),
-      // С разбитого автобуса можно снять уцелевшее оружие (GDD 8.5).
-      items: [...new Set([...extraItems, ...(won ? combat.enemy.weapons.filter((w) => w.hp > 0).map((w) => w.itemId) : [])])],
-      survivors: won ? int(state.rng, def.loot.survivors[0], def.loot.survivors[1]) : 0,
+      resources: rollLoot(state, content, combat),
+      // С разбитых автобусов можно снять уцелевшее оружие (GDD 8.5).
+      items: [...new Set([...extraItems, ...destroyed.flatMap((e) => e.weapons.filter((w) => w.hp > 0).map((w) => w.itemId))])],
+      survivors: destroyed.reduce((sum, e) => sum + int(state.rng, e.def.loot.survivors[0], e.def.loot.survivors[1]), 0),
     };
     state.phase = { type: "loot", loot, result, then };
     return;

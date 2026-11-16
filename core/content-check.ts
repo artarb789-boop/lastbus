@@ -97,6 +97,9 @@ export function checkContent(c: Content): string[] {
   }
 
   // ---- Заклятый соперник ----
+  for (const pair of c.balance.gangs.pairs) {
+    for (const id of pair) if (!c.enemies[id]) err("balance.gangs", `unknown enemy ${id}`);
+  }
   const nem = c.balance.nemesis;
   const tmpl = c.enemies[nem.template];
   if (!tmpl) err("balance.nemesis", `unknown template ${nem.template}`);
