@@ -7,7 +7,7 @@ import { content, drive, quietContent, runOn } from "./helpers";
 const c = quietContent;
 
 describe("установка и снятие", () => {
-  it("установка на остановке тратит действие и запчасти, старый предмет уходит в багаж", () => {
+  it("установка на остановке тратит только запчасти (не действия), старый предмет уходит в багаж", () => {
     const s = runOn(1, ["start", "village", "boss"]);
     drive(s);
     const rockets = makeItem(s, c, "wpn_rockets");
@@ -18,7 +18,7 @@ describe("установка и снятие", () => {
     expect(s.equipment.roof?.itemId).toBe("wpn_rockets");
     expect(s.inventory.map((i) => i.itemId)).toEqual(["wpn_mg"]);
     expect(s.resources.parts).toBe(10 - content.items.wpn_rockets!.installCost.parts);
-    expect(s.phase.type === "stop" && s.phase.actionsLeft).toBe(actions - 1);
+    expect(s.phase.type === "stop" && s.phase.actionsLeft).toBe(actions);
   });
 
   it("предмет не ставится в слот чужого вида", () => {
@@ -135,7 +135,7 @@ describe("посты и броня", () => {
 });
 
 describe("ремонт", () => {
-  it("ремонт возвращает полную прочность и тратит действие", () => {
+  it("ремонт возвращает полную прочность и не тратит действий", () => {
     const s = runOn(13, ["start", "village", "boss"]);
     drive(s);
     const mg = s.equipment.roof!;

@@ -290,22 +290,26 @@ export function makeCarefulBot(opts: { scavengers: number; heal: boolean; buyGea
       if (phase.type === "stop") {
         const fix = crewFix(state, content);
         if (fix) return fix;
+        // Лечение, ремонт и установка действий не тратят — только аптечки и запчасти.
+        const wounded = state.passengers.some((p) => p.status === "wounded") || state.driver.status === "wounded";
+        if (opts.heal && wounded && state.resources.medkits > 0) return { type: "heal" };
+        const atGarage = findNode(state.map, state.nodeId).kind === "garage";
+        const sys = systemToRepair(state, content, atGarage);
+        if (sys) return { type: "repairSystem", system: sys };
+        for (const inst of Object.values(state.equipment)) {
+          if (!inst || inst.durability > 0) continue;
+          if (state.resources.parts >= repairCost(content, inst, atGarage)) return { type: "repair", uid: inst.uid };
+        }
+        if (opts.buyGear) {
+          const target = installTarget(state, content);
+          if (target && state.resources.parts >= target.cost) {
+            return { type: "install", uid: target.uid, slotId: target.slotId };
+          }
+          // Лишнее из багажа, которое некуда поставить, — продать скупщику.
+          const junk = state.inventory.find((i) => !hasFreeSlotFor(state, content, i.itemId));
+          if (junk) return { type: "sell", uid: junk.uid };
+        }
         if (phase.actionsLeft > 0) {
-          const wounded = state.passengers.some((p) => p.status === "wounded") || state.driver.status === "wounded";
-          if (opts.heal && wounded && state.resources.medkits > 0) return { type: "heal" };
-          const atGarage = findNode(state.map, state.nodeId).kind === "garage";
-          const sys = systemToRepair(state, content, atGarage);
-          if (sys) return { type: "repairSystem", system: sys };
-          for (const inst of Object.values(state.equipment)) {
-            if (!inst || inst.durability > 0) continue;
-            if (state.resources.parts >= repairCost(content, inst, atGarage)) return { type: "repair", uid: inst.uid };
-          }
-          if (opts.buyGear) {
-            const target = installTarget(state, content);
-            if (target && state.resources.parts >= target.cost) {
-              return { type: "install", uid: target.uid, slotId: target.slotId };
-            }
-          }
           const team = state.passengers.filter((p) => p.status === "healthy").slice(0, opts.scavengers);
           if (team.length > 0) return { type: "scavenge", passengerIds: team.map((p) => p.id) };
         }

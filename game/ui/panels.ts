@@ -14,7 +14,7 @@ import type { Store } from "../store";
 import { playerBusLook, busSprite } from "../art/buses";
 import { artImg } from "../art/images";
 import { spriteUrl } from "../art/pixel";
-import { cmdAttr, esc, itemName, NODE, RES, SHOP, SYSTEM, t, uiAttr } from "./text";
+import { cmdAttr, esc, fitsLabel, itemName, NODE, RES, SHOP, SYSTEM, sellPrice, t, uiAttr } from "./text";
 
 /** Иконка ресурса: картинка ×2, если утверждена, иначе эмодзи. */
 function resIcon(k: keyof typeof RES): string {
@@ -135,7 +135,7 @@ function routePanel(store: Store): string {
         <h2>Соперник едет туда же</h2>
         <p>К остановке «${esc(NODE[node.kind].label)}» направляется автобус конкурентов. Как поедем?</p>
         <div class="choices">
-          <button ${cmdAttr({ type: "chooseRoute", edgeId: pending.id, pace: "normal" })}>Как обычно (⛽${normal}) — он успеет первым, останется 1 действие</button>
+          <button ${cmdAttr({ type: "chooseRoute", edgeId: pending.id, pace: "normal" })}>Как обычно (⛽${normal}) — он успеет первым и всё обыщет, обыска не будет</button>
           <button ${cmdAttr({ type: "chooseRoute", edgeId: pending.id, pace: "rush" })}>Рывок (⛽${rush}) — приедем первыми</button>
           <button ${cmdAttr({ type: "chooseRoute", edgeId: pending.id, pace: "intercept" })}>Перехватить (⛽${normal}) — бой на дороге</button>
           <button ${uiAttr("cancelEdge")}>Назад</button>
@@ -182,16 +182,16 @@ function stopPanel(store: Store): string {
   return `
     <section class="panel">
       <h2>${artImg(`map/${node.kind}.png`, 2, "node-icon") || NODE[node.kind].icon} ${esc(NODE[node.kind].label)}</h2>
-      <p>Действий осталось: <b>${left}</b>${garage ? " · в автосервисе ремонт и установка вдвое дешевле" : ""}</p>
+      <p class="muted">Лечение, ремонт, установка и продажа — без ограничений, платите только запчастями и аптечками.${garage ? " В автосервисе ремонт и установка вдвое дешевле." : ""}</p>
       <div class="block">
-        <h4>Обыск</h4>
+        <h4>Обыск <span class="muted">· ${left > 0 ? `можно ещё ${left}` : "уже обыскали"}</span></h4>
         <div class="chips">${teamPick || '<span class="muted">некого отправить</span>'}</div>
         <button ${left > 0 && team.length > 0 ? "" : "disabled"} ${cmdAttr({ type: "scavenge", passengerIds: team.slice(0, 3) })}>Обыскать (${team.length} чел.)</button>
         <span class="muted">до 3 человек, есть риск ранения</span>
       </div>
       <div class="block">
         <h4>Лечение и ремонт</h4>
-        <button ${left > 0 && wounded > 0 && state.resources.medkits > 0 ? "" : "disabled"} ${cmdAttr({ type: "heal" })}>Лечить раненых (✚1 на человека, раненых: ${wounded})</button>
+        <button ${wounded > 0 && state.resources.medkits > 0 ? "" : "disabled"} ${cmdAttr({ type: "heal" })}>Лечить раненых (✚1 на человека, раненых: ${wounded})</button>
         ${repairs || '<span class="muted">корпус и системы целы</span>'}
       </div>
       <div class="block">
@@ -217,7 +217,7 @@ function shopPanel(store: Store): string {
       const what =
         o.type === "resource"
           ? `${resIcon(o.resource)} ${o.amount} ${RES[o.resource].label.toLowerCase()}`
-          : `${itemIcon(o.itemId) || "🔫"} ${esc(itemName(content, o.itemId))} <span class="muted">${esc(t(content, content.items[o.itemId]!.descKey))}</span>`;
+          : `${itemIcon(o.itemId) || "🔫"} ${esc(itemName(content, o.itemId))} <span class="muted">${esc(t(content, content.items[o.itemId]!.descKey))} · ставится: ${esc(fitsLabel(content, o.itemId))}</span>`;
       const can = !o.sold && state.resources.tokens >= o.price;
       return `<li class="${o.sold ? "sold" : ""}">${what} <button ${can ? "" : "disabled"} ${cmdAttr({ type: "buy", offerIndex: i })}>${o.sold ? "продано" : `Купить (🪙${o.price})`}</button></li>`;
     })
@@ -226,7 +226,7 @@ function shopPanel(store: Store): string {
     <section class="panel">
       ${artImg(`shops/${visit.kind}.png`, 3, "shop-sign")}
       <h2>🛒 ${esc(SHOP[visit.kind])}</h2>
-      <p class="muted">Магазин у дороги — не остановка: пассажиры не выходят, действия не тратятся. Купленное можно сразу поставить в снаряжении справа.</p>
+      <p class="muted">Магазин у дороги — не остановка: пассажиры не выходят. Купленное можно сразу поставить в снаряжении справа.</p>
       <ul class="offers">${offers}</ul>
       <button class="primary" ${cmdAttr({ type: "leaveShop" })}>Ехать дальше</button>
     </section>`;
@@ -265,22 +265,33 @@ function lootPanel(store: Store): string {
     .map((k) => `${resIcon(k)} +${loot.resources[k]}`)
     .join(" · ");
   const items = loot.items
-    .map(
-      (id, i) =>
-        `<button class="chip ${ui.lootItem === i ? "on" : ""}" ${uiAttr("lootItem", i)}>${itemIcon(id)}${esc(itemName(content, id))}</button>`,
-    )
+    .map((id, i) => {
+      const fitsBus = state.bus.slots.some((sl) => content.items[id]!.slotKinds.includes(sl.kind));
+      return `<button class="chip ${ui.lootItem === i ? "on" : ""}" ${uiAttr("lootItem", i)}>${itemIcon(id)}${esc(itemName(content, id))}
+        <span class="muted small">${fitsBus ? esc(fitsLabel(content, id)) : "не ставится"} · 🪙${sellPrice(content, id)}</span></button>`;
+    })
     .join("");
+  const picked = ui.lootItem !== null ? loot.items[ui.lootItem] : undefined;
+  const finish = (sellItem: boolean, label: string, primary: boolean) =>
+    `<button class="${primary ? "primary" : ""}" ${cmdAttr({ type: "finishLoot", itemIndex: ui.lootItem, takeSurvivors: ui.lootSurvivors, sellItem })}>${label}</button>`;
   return `
     <section class="panel">
       <h2>${result === "won" ? "Победа!" : "Враг сдался"}</h2>
       <p>Добыча: ${res || "ничего"}</p>
-      ${loot.items.length ? `<h4>Снять одно оружие (в багаж)</h4><div class="chips">${items}</div>` : ""}
+      ${loot.items.length ? `<h4>Снять одно оружие</h4><p class="muted small">Возьмите в багаж, чтобы поставить на автобус (в любой момент вне боя), или сразу продайте.</p><div class="chips">${items}</div>` : ""}
       ${
         loot.survivors > 0
           ? `<label class="check"><input type="checkbox" ${ui.lootSurvivors ? "checked" : ""} ${uiAttr("lootSurvivors")}> Взять пленных в автобус (${loot.survivors})</label>`
           : ""
       }
-      <button class="primary" ${cmdAttr({ type: "finishLoot", itemIndex: ui.lootItem, takeSurvivors: ui.lootSurvivors })}>Забрать и ехать</button>
+      <div class="row">
+        ${
+          picked
+            ? finish(false, `Взять «${esc(itemName(content, picked))}» в багаж и ехать`, true) +
+              finish(true, `Продать за 🪙${sellPrice(content, picked)} и ехать`, false)
+            : finish(false, loot.items.length ? "Ехать без оружия" : "Забрать и ехать", true)
+        }
+      </div>
     </section>`;
 }
 

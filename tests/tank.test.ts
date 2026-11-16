@@ -33,7 +33,7 @@ describe("бак", () => {
     expect(s.resources.fuel).toBe(60 - cost - content.balance.tank.leakPerLeg);
   });
 
-  it("ремонт бака на остановке тратит действие и запчасти и останавливает утечку", () => {
+  it("ремонт бака на остановке тратит запчасти (не действия) и останавливает утечку", () => {
     const s = runOn(4, ["start", "village", "village", "boss"]);
     drive(s);
     s.tank.durability = 0;
@@ -42,7 +42,7 @@ describe("бак", () => {
     expect(applyCommand(s, { type: "repairSystem", system: "tank" }, c).ok).toBe(true);
     expect(s.tank.durability).toBe(s.tank.max);
     expect(s.resources.parts).toBe(10 - cost);
-    expect(s.phase.type === "stop" && s.phase.actionsLeft).toBe(content.balance.stopActions - 1);
+    expect(s.phase.type === "stop" && s.phase.actionsLeft).toBe(content.balance.stopActions);
     expect(applyCommand(s, { type: "repairSystem", system: "tank" }, c)).toEqual({ ok: false, error: "not_damaged" });
   });
 

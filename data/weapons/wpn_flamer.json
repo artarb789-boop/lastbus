@@ -4,7 +4,9 @@
   "descKey": "item.wpn_flamer.desc",
   "kind": "weapon",
   "slotKinds": [
-    "side"
+    "side",
+    "front",
+    "rear"
   ],
   "durability": 2,
   "price": 9,

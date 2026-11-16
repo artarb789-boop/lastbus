@@ -8,7 +8,7 @@
     "tokens": 6
   },
   "tankBase": 80,
-  "stopActions": 2,
+  "stopActions": 1,
   "foodEveryLegs": 2,
   "startPassengers": 3,
   "ticketMin": 1,
@@ -135,7 +135,7 @@
   },
   "rivalChance": 0.25,
   "rushFuelMult": 1.5,
-  "contestedActions": 1,
+  "contestedActions": 0,
   "repairDurabilityPerPart": 2,
   "garagePartsMult": 0.5,
   "sellMult": 0.5,

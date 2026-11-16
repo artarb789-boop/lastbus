@@ -4,7 +4,9 @@
   "descKey": "item.wpn_harpoon.desc",
   "kind": "weapon",
   "slotKinds": [
-    "side"
+    "side",
+    "front",
+    "rear"
   ],
   "durability": 3,
   "price": 6,

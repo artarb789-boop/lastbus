@@ -61,7 +61,8 @@ export type Command =
   | { type: "setMechanicFocus"; focus: MechanicFocus }
   | { type: "advance"; ticks: number }
   | { type: "escape" }
-  | { type: "finishLoot"; itemIndex: number | null; takeSurvivors: boolean }
+  /** sellItem — выбранное оружие не брать в багаж, а сразу продать. */
+  | { type: "finishLoot"; itemIndex: number | null; takeSurvivors: boolean; sellItem?: boolean }
   | { type: "install"; uid: string; slotId: string }
   | { type: "uninstall"; slotId: string }
   | { type: "dropPassenger"; passengerId: string }
@@ -112,7 +113,7 @@ export function applyCommand(state: RunState, cmd: Command, content: Content): C
     case "escape":
       return escapeCmd(state, content);
     case "finishLoot":
-      return finishLootCmd(state, content, cmd.itemIndex, cmd.takeSurvivors);
+      return finishLootCmd(state, content, cmd.itemIndex, cmd.takeSurvivors, cmd.sellItem ?? false);
     case "install":
       return install(state, content, cmd.uid, cmd.slotId);
     case "uninstall":
@@ -482,15 +483,27 @@ function endCombat(state: RunState, content: Content, combat: CombatState, then:
   continueAfter(state, content, then, result);
 }
 
-function finishLootCmd(state: RunState, content: Content, itemIndex: number | null, takeSurvivors: boolean): CommandResult {
+function finishLootCmd(
+  state: RunState,
+  content: Content,
+  itemIndex: number | null,
+  takeSurvivors: boolean,
+  sellItem: boolean,
+): CommandResult {
   if (state.phase.type !== "loot") return fail("wrong_phase");
   const { loot, result, then } = state.phase;
   if (itemIndex !== null) {
     const itemId = loot.items[itemIndex];
     if (!itemId) return fail("bad_item");
-    state.inventory.push(makeItem(state, content, itemId));
-    state.stats.itemsGained += 1;
-    log(state, `trophy: ${itemId}`);
+    if (sellItem) {
+      const price = Math.floor(content.items[itemId]!.price * content.balance.sellMult);
+      state.resources.tokens += price;
+      log(state, `trophy ${itemId} sold for ${price}`);
+    } else {
+      state.inventory.push(makeItem(state, content, itemId));
+      state.stats.itemsGained += 1;
+      log(state, `trophy: ${itemId}`);
+    }
   }
   if (takeSurvivors && loot.survivors > 0) {
     boardPassengers(state, content, Math.min(loot.survivors, freeSeats(state).length));
@@ -539,8 +552,9 @@ function buy(state: RunState, content: Content, offerIndex: number): CommandResu
   return OK;
 }
 
+/** Продать предмет: в магазине у дороги или скупщику на любой остановке. */
 function sell(state: RunState, content: Content, uid: string): CommandResult {
-  if (state.phase.type !== "shop") return fail("wrong_phase");
+  if (state.phase.type !== "shop" && state.phase.type !== "stop") return fail("wrong_phase");
   const loc = locateItem(state, uid);
   if (!loc) return fail("unknown_item");
   const price = Math.floor(itemDef(content, loc.inst).price * content.balance.sellMult);
@@ -564,9 +578,14 @@ function atGarage(state: RunState): boolean {
   return state.phase.type === "stop" && findNode(state.map, state.nodeId).kind === "garage";
 }
 
+/** Установка и снятие — в любой момент вне боя и события: в дороге, на остановке, в магазине, на трофеях. */
+function canRefit(state: RunState): boolean {
+  const t = state.phase.type;
+  return t === "route" || t === "stop" || t === "shop" || t === "loot";
+}
+
 function install(state: RunState, content: Content, uid: string, slotId: string): CommandResult {
-  const inShop = state.phase.type === "shop";
-  if (state.phase.type !== "stop" && !inShop) return fail("wrong_phase");
+  if (!canRefit(state)) return fail("wrong_phase");
   const loc = locateItem(state, uid);
   if (!loc) return fail("unknown_item");
   if (loc.where !== "inventory") return fail("item_already_installed");
@@ -576,10 +595,6 @@ function install(state: RunState, content: Content, uid: string, slotId: string)
   if (!fits(def, slot)) return fail("does_not_fit");
   const cost = installCost(content, def, atGarage(state));
   if (state.resources.parts < cost) return fail("not_enough_parts");
-  if (state.phase.type === "stop") {
-    if (state.phase.actionsLeft <= 0) return fail("no_actions_left");
-    state.phase.actionsLeft -= 1;
-  }
   state.resources.parts -= cost;
   state.inventory.splice(loc.index, 1);
   const old = state.equipment[slotId];
@@ -590,7 +605,7 @@ function install(state: RunState, content: Content, uid: string, slotId: string)
 }
 
 function uninstall(state: RunState, slotId: string): CommandResult {
-  if (state.phase.type !== "stop" && state.phase.type !== "shop" && state.phase.type !== "route") return fail("wrong_phase");
+  if (!canRefit(state)) return fail("wrong_phase");
   if (!slotDef(state, slotId)) return fail("unknown_slot");
   const inst = state.equipment[slotId];
   if (!inst) return fail("slot_empty");
@@ -608,8 +623,6 @@ function repair(state: RunState, content: Content, uid: string): CommandResult {
   if (loc.inst.durability >= def.durability) return fail("not_damaged");
   const cost = repairCost(content, loc.inst, atGarage(state));
   if (state.resources.parts < cost) return fail("not_enough_parts");
-  const err = spendAction(state);
-  if (err) return err;
   state.resources.parts -= cost;
   loc.inst.durability = def.durability;
   log(state, `repaired ${def.id} (−${cost} parts)`);
@@ -632,8 +645,6 @@ function repairSystemCmd(state: RunState, content: Content, system: RepairableSy
   const cost = systemRepairCost(state, content, system, atGarage(state));
   if (cost === 0) return fail("not_damaged");
   if (state.resources.parts < cost) return fail("not_enough_parts");
-  const err = spendAction(state);
-  if (err) return err;
   state.resources.parts -= cost;
   if (system === "tank") repairTankFull(state);
   else {
@@ -685,9 +696,6 @@ function heal(state: RunState, content: Content): CommandResult {
   const driverWounded = state.driver.status === "wounded";
   if (!driverWounded && wounded.length === 0) return fail("nobody_wounded");
   if (state.resources.medkits < 1) return fail("no_medkits");
-
-  const err = spendAction(state);
-  if (err) return err;
 
   const cap = healCapacity(state, content);
   let healed = 0;

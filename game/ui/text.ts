@@ -72,6 +72,26 @@ export const SLOT: Record<string, string> = {
   int2: "Внутри 2",
 };
 
+export const SLOT_KIND: Record<string, string> = {
+  front: "нос",
+  side: "борт",
+  roof: "крыша",
+  rear: "корма",
+  internal: "внутри",
+};
+
+/** «ставится: крыша, борт, корма» — куда можно поставить предмет. */
+export function fitsLabel(content: Content, itemId: string): string {
+  const def = content.items[itemId];
+  return def ? def.slotKinds.map((k) => SLOT_KIND[k] ?? k).join(", ") : "";
+}
+
+/** Цена продажи предмета. */
+export function sellPrice(content: Content, itemId: string): number {
+  const def = content.items[itemId];
+  return def ? Math.floor(def.price * content.balance.sellMult) : 0;
+}
+
 export const SYSTEM: Record<string, string> = {
   hull: "Корпус",
   engine: "Двигатель",

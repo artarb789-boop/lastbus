@@ -4,7 +4,8 @@
   "descKey": "item.wpn_rockets.desc",
   "kind": "weapon",
   "slotKinds": [
-    "roof"
+    "roof",
+    "rear"
   ],
   "durability": 2,
   "price": 12,

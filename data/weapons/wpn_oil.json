@@ -4,7 +4,8 @@
   "descKey": "item.wpn_oil.desc",
   "kind": "weapon",
   "slotKinds": [
-    "rear"
+    "rear",
+    "side"
   ],
   "durability": 2,
   "price": 4,

@@ -4,7 +4,9 @@
   "descKey": "item.wpn_shotgun.desc",
   "kind": "weapon",
   "slotKinds": [
-    "side"
+    "side",
+    "rear",
+    "front"
   ],
   "durability": 2,
   "price": 5,

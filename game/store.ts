@@ -5,7 +5,7 @@
 import { applyCommand, DEFAULT_BUS, DEFAULT_DRIVER, newRun, replay, type Command, type Content, type RunState } from "../core";
 
 // Версия меняется, когда меняется логика забега: старое сохранение воспроизвелось бы иначе.
-const SAVE_KEY = "lastbus.save.v4";
+const SAVE_KEY = "lastbus.save.v5";
 
 export interface UiState {
   /** Выбранный пассажир для пересадки, высадки или обыска. */

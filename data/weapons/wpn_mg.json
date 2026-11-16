@@ -4,7 +4,10 @@
   "descKey": "item.wpn_mg.desc",
   "kind": "weapon",
   "slotKinds": [
-    "roof"
+    "roof",
+    "side",
+    "rear",
+    "front"
   ],
   "durability": 3,
   "price": 8,

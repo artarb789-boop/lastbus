@@ -194,9 +194,7 @@ function onUi(action: string, value: string): void {
 // Браузер разрешает звук только после действия игрока.
 for (const type of ["pointerdown", "keydown"] as const) window.addEventListener(type, unlockAudio, { capture: true });
 
-app.addEventListener("click", (ev) => {
-  const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-cmd],[data-ui]");
-  if (!el || (el as HTMLButtonElement).disabled) return;
+function activate(el: HTMLElement, ev: Event): void {
   // Короткий щелчок у кнопок без своего звука.
   if (el.tagName === "BUTTON" && !/fieldRepair|"buy"|"escape"/.test(el.dataset.cmd ?? "")) sfx("click");
   if (el.dataset.cmd) {
@@ -205,6 +203,29 @@ app.addEventListener("click", (ev) => {
     if (el instanceof HTMLInputElement) ev.preventDefault();
     onUi(el.dataset.ui, el.dataset.value ?? "");
   }
+}
+
+function actionTarget(ev: Event): HTMLElement | null {
+  const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-cmd],[data-ui]");
+  return el && !(el as HTMLButtonElement).disabled ? el : null;
+}
+
+// Кнопки срабатывают на нажатие, а не на клик: в бою экран перерисовывается несколько раз в секунду,
+// и кнопка под курсором успевает смениться между нажатием и отпусканием — клик тогда теряется.
+app.addEventListener("pointerdown", (ev) => {
+  if (ev.button !== 0) return;
+  const el = actionTarget(ev);
+  if (!el || el instanceof HTMLInputElement) return;
+  ev.preventDefault(); // не уводить фокус и не выделять текст
+  activate(el, ev);
+});
+
+app.addEventListener("click", (ev) => {
+  const el = actionTarget(ev);
+  if (!el) return;
+  // Галочки — по клику (их переключает сам браузер); кнопки — только с клавиатуры (Enter, пробел),
+  // мышь и касание уже обработаны на pointerdown.
+  if (el instanceof HTMLInputElement || ev.detail === 0) activate(el, ev);
 });
 
 app.addEventListener("change", (ev) => {

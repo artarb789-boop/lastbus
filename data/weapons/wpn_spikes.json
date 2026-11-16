@@ -4,7 +4,8 @@
   "descKey": "item.wpn_spikes.desc",
   "kind": "weapon",
   "slotKinds": [
-    "front"
+    "front",
+    "side"
   ],
   "durability": 3,
   "price": 4,
