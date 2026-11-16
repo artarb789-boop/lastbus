@@ -7,6 +7,7 @@ import { busSprite, enemyLook, playerLook } from "../art/buses";
 import { art, type ArtImage } from "../art/images";
 import { spriteSize, spriteUrl, type Sprite } from "../art/pixel";
 import { enemyMountSlots, mountPoint, weaponSprite } from "../art/weapons";
+import { engineHum, sfx, WEAPON_SFX } from "../audio/sound";
 import type { Store } from "../store";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -301,6 +302,9 @@ export class CombatScene {
     this.tether.setAttribute("y2", String(BASE_Y + 24));
 
     this.el.classList.toggle("paused", paused);
+    // Гул мотора: при отходе и сближении мотор ревёт сильнее, сломанный — чихает.
+    const rpm = c.maneuver === "hold" ? 1 : c.maneuver === "approach" ? 1.2 : 1.35;
+    engineHum(true, { rpm, broken: state.systems.engine.hp <= 0, paused });
 
     if (!fresh) this.effects(store, c, enemyX);
     this.prev = {
@@ -314,18 +318,30 @@ export class CombatScene {
   /** Вспышки выстрелов и попаданий по разнице с прошлым кадром. */
   private effects(store: Store, c: CombatState, enemyX: number): void {
     const state = store.state;
-    const firedIndex = (now: number[], before: number[]) => now.findIndex((ch, i) => ch === 0 && (before[i] ?? 0) > 1);
-    const pi = firedIndex(c.weapons.map((w) => w.charge), this.prev.playerCharges);
-    if (pi >= 0) this.flash(this.player, c.weapons[pi]!.slotId);
-    const ei = firedIndex(c.enemy.weapons.map((w) => w.charge), this.prev.enemyCharges);
-    if (ei >= 0) this.flash(this.enemy, enemyMountSlots(c.enemy.weapons.map((w) => w.itemId), store.content)[ei] ?? "");
+    const firedAll = (now: number[], before: number[]) =>
+      now.flatMap((ch, i) => (ch === 0 && (before[i] ?? 0) > 1 ? [i] : []));
+    const pf = firedAll(c.weapons.map((w) => w.charge), this.prev.playerCharges);
+    if (pf.length) this.flash(this.player, c.weapons[pf[0]!]!.slotId);
+    pf.forEach((i, k) => {
+      const itemId = state.equipment[c.weapons[i]!.slotId]?.itemId ?? "";
+      const name = WEAPON_SFX[itemId];
+      if (name) sfx(name, { pan: -0.5, delay: k * 0.04 });
+    });
+    const ef = firedAll(c.enemy.weapons.map((w) => w.charge), this.prev.enemyCharges);
+    if (ef.length) this.flash(this.enemy, enemyMountSlots(c.enemy.weapons.map((w) => w.itemId), store.content)[ef[0]!] ?? "");
+    ef.forEach((i, k) => {
+      const name = WEAPON_SFX[c.enemy.weapons[i]!.itemId];
+      if (name) sfx(name, { pan: 0.5, gain: 0.7, delay: k * 0.04 });
+    });
     const playerLost = this.prev.playerHull - state.hull.hp;
     const enemyLost = this.prev.enemyHull - c.enemy.hull.hp;
     if (playerLost > 0) {
+      sfx("hitPlayer", { pan: -0.5, delay: 0.05 });
       this.pulse(this.player.hit, "hit", 220);
       this.floatDamage(this.player, PLAYER_X, playerLost);
     }
     if (enemyLost > 0) {
+      sfx("hitEnemy", { pan: 0.5, delay: 0.05 });
       this.pulse(this.enemy.hit, "hit", 220);
       this.floatDamage(this.enemy, enemyX, enemyLost);
     }

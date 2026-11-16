@@ -4,6 +4,7 @@
  */
 import type { Command, TargetRef } from "../core";
 import { loadArt } from "./art/images";
+import { engineHum, isMuted, setMuted, sfx, unlockAudio } from "./audio/sound";
 import { loadBrowserContent } from "./content";
 import { createStore, dispatch, startNewRun, type Store } from "./store";
 import { renderBus, renderGear } from "./ui/bus";
@@ -59,6 +60,7 @@ function render(): void {
   } else if (scene) {
     scene.el.remove();
     scene = null;
+    engineHum(false);
   }
 
   const error = store.error ? `<div class="error">${esc(ERRORS[store.error] ?? store.error)}</div>` : "";
@@ -71,7 +73,9 @@ function render(): void {
 }
 
 function send(cmd: Command): void {
-  dispatch(store, cmd);
+  const before = store.state.phase;
+  const ok = dispatch(store, cmd);
+  if (ok) phaseSounds(before, cmd);
   // После смены фазы сбрасываем временные выборы, чтобы не тянуть их в новый экран.
   const phase = store.state.phase.type;
   if (phase !== "stop") store.ui.scavengeTeam = [];
@@ -85,6 +89,22 @@ function send(cmd: Command): void {
   // Пока игрок выбирает цель в открытом списке, не перерисовываем — иначе список закроется.
   if (cmd.type === "advance" && document.activeElement?.tagName === "SELECT") return;
   render();
+}
+
+/** Звуки переходов: начало и конец боя, отрыв, ремонт, покупка. */
+function phaseSounds(before: typeof store.state.phase, cmd: Command): void {
+  const after = store.state.phase;
+  if (cmd.type === "fieldRepair") sfx("repair");
+  if (cmd.type === "buy") sfx("coins");
+  if (cmd.type === "escape") sfx("escape");
+  if (before.type !== "combat" && after.type === "combat" && after.combat.source === "boss") sfx("boss");
+  if (before.type === "combat" && after.type !== "combat") {
+    if (after.type === "over" && after.result === "lost") sfx("defeat");
+    else if (after.type === "loot") sfx("victory");
+  }
+  if (before.type !== "over" && after.type === "over" && before.type !== "combat") {
+    sfx(after.result === "won" ? "victory" : "defeat");
+  }
 }
 
 function onUi(action: string, value: string): void {
@@ -158,6 +178,9 @@ function onUi(action: string, value: string): void {
       }
       break;
     }
+    case "toggleSound":
+      setMuted(!isMuted());
+      break;
     case "togglePause":
       ui.paused = !ui.paused;
       break;
@@ -168,9 +191,14 @@ function onUi(action: string, value: string): void {
   render();
 }
 
+// Браузер разрешает звук только после действия игрока.
+for (const type of ["pointerdown", "keydown"] as const) window.addEventListener(type, unlockAudio, { capture: true });
+
 app.addEventListener("click", (ev) => {
   const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-cmd],[data-ui]");
   if (!el || (el as HTMLButtonElement).disabled) return;
+  // Короткий щелчок у кнопок без своего звука.
+  if (el.tagName === "BUTTON" && !/fieldRepair|"buy"|"escape"/.test(el.dataset.cmd ?? "")) sfx("click");
   if (el.dataset.cmd) {
     send(JSON.parse(el.dataset.cmd) as Command);
   } else if (el.dataset.ui) {

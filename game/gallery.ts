@@ -8,6 +8,7 @@ import { artCatalog, sizeLabel, sizeOk, type ArtCategory, type ArtSpec } from ".
 import { fileUrl, manifest } from "./art/images";
 import { personSprite } from "./art/people";
 import { spriteUrl, type Sprite } from "./art/pixel";
+import { sfx, SFX_NAMES, unlockAudio, type SfxName } from "./audio/sound";
 import { loadBrowserContent } from "./content";
 import { enemyMountSlots, mountPoint, weaponSprite } from "./art/weapons";
 import { NODE, RES } from "./ui/text";
@@ -115,6 +116,36 @@ function spritePic(s: Sprite): Pic {
   return { url: spriteUrl(s), w: Math.max(...s.rows.map((r) => r.length)), h: s.rows.length };
 }
 
+const SFX_LABEL: Record<SfxName, string> = {
+  mg: "Пулемёт",
+  shotgun: "Дробовик",
+  rockets: "Ракетница",
+  harpoon: "Гарпун",
+  flamer: "Огнемёт",
+  oil: "Бочки с маслом",
+  ram: "Таран",
+  spikes: "Шипы",
+  hitPlayer: "Попадание по нам",
+  hitEnemy: "Попадание по врагу",
+  repair: "Залатать",
+  click: "Щелчок кнопки",
+  victory: "Победа",
+  defeat: "Поражение",
+  escape: "Отрыв",
+  coins: "Покупка",
+  boss: "Появление босса",
+};
+
+/** Все звуки кнопками — послушать без боя. */
+function sounds(): string {
+  return `
+    <section class="g-section">
+      <h2>Звуки</h2>
+      <p class="muted">Звук синтезируется кодом (game/audio/sound.ts), файлов нет. Нажмите, чтобы послушать.</p>
+      <div class="g-row">${SFX_NAMES.map((n) => `<button data-sfx="${n}">${SFX_LABEL[n]}</button>`).join("")}</div>
+    </section>`;
+}
+
 /** Автобус с оружием по точкам крепления, как в бою. */
 function assembleSvg(bus: Pic, mounts: { slot: string; itemId: string }[], caption: string): string {
   const k = 3;
@@ -212,11 +243,19 @@ function render(): void {
       ${btn("priority", "2", "P2", priority === 2)}
       ${btn("priority", "3", "P3", priority === 3)}
     </div>
+    ${sounds()}
     ${assembly()}
     ${groups || '<p class="muted">Ничего не подходит под фильтр.</p>'}`;
 }
 
 root.addEventListener("click", (ev) => {
+  const snd = (ev.target as HTMLElement).closest<HTMLElement>("[data-sfx]");
+  if (snd) {
+    unlockAudio();
+    // Контекст мог только что проснуться — даём ему мгновение.
+    setTimeout(() => sfx(snd.dataset.sfx as SfxName), 30);
+    return;
+  }
   const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-filter],[data-priority]");
   if (!el) return;
   if (el.dataset.filter) filter = el.dataset.filter as typeof filter;

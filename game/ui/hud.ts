@@ -1,5 +1,6 @@
 import { capacity, driverDef, isLeaking, RESOURCE_KINDS, tankMax } from "../../core";
 import { artImg } from "../art/images";
+import { isMuted } from "../audio/sound";
 import type { Store } from "../store";
 import { bar, esc, RES, SYSTEM, t, uiAttr } from "./text";
 
@@ -35,6 +36,7 @@ export function renderHud(store: Store): string {
         <span>Пассажиры: ${state.passengers.length}/${capacity(state)}</span>
         <span>Перегонов: ${state.legs}</span>
         <span class="muted">seed ${state.seed}</span>
+        <button title="Звук" ${uiAttr("toggleSound")}>${isMuted() ? "🔇 Звук выкл." : "🔊 Звук"}</button>
         <button ${uiAttr("newRun")}>Новый забег</button>
       </div>
     </header>`;
