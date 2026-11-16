@@ -7,9 +7,9 @@ import { busSprite, enemyLook, PLAYER_LOOK } from "./art/buses";
 import { artCatalog, sizeLabel, sizeOk, type ArtCategory, type ArtSpec } from "./art/catalog";
 import { fileUrl, manifest } from "./art/images";
 import { personSprite } from "./art/people";
-import { spriteUrl } from "./art/pixel";
+import { spriteUrl, type Sprite } from "./art/pixel";
 import { loadBrowserContent } from "./content";
-import { mountPoint } from "./ui/scene";
+import { enemyMountSlots, mountPoint, weaponSprite } from "./art/weapons";
 import { NODE, RES } from "./ui/text";
 
 const content = loadBrowserContent();
@@ -58,6 +58,10 @@ function fallback(spec: ArtSpec): string {
     const s = busSprite(id === "bus_city" ? PLAYER_LOOK : enemyLook(id));
     return img(spriteUrl(s), Math.max(...s.rows.map((r) => r.length)), s.rows.length, 3);
   }
+  if (dir === "weapons") {
+    const s = weaponSprite(id);
+    return s ? img(spriteUrl(s), 16, 10, 3) : '<span class="muted">—</span>';
+  }
   if (dir === "people") return img(spriteUrl(personSprite(3, id.includes("wounded"))), 7, 9, 3);
   if (dir === "map") return `<span style="font-size:24px">${NODE[id as keyof typeof NODE]?.icon ?? "—"}</span>`;
   if (dir === "resources") return `<span style="font-size:20px">${RES[id as keyof typeof RES]?.icon ?? "—"}</span>`;
@@ -98,39 +102,73 @@ function card(spec: ArtSpec): string {
     </div>`;
 }
 
-/** Автобус игрока со всем оружием по точкам крепления — проверка, что точки попадают в корпус. */
-function assembly(): string {
-  const bus = manifest["buses/bus_city.png"];
-  const busUrl = fileUrl("buses/bus_city.png");
-  if (!bus || !busUrl) return "";
+type Pic = { url: string; w: number; h: number };
+
+/** Картинка из assets/img (любого статуса — это витрина) или null. */
+function filePic(path: string): Pic | null {
+  const e = manifest[path];
+  const url = fileUrl(path);
+  return e && url ? { url, w: e.w, h: e.h } : null;
+}
+
+function spritePic(s: Sprite): Pic {
+  return { url: spriteUrl(s), w: Math.max(...s.rows.map((r) => r.length)), h: s.rows.length };
+}
+
+/** Автобус с оружием по точкам крепления, как в бою. */
+function assembleSvg(bus: Pic, mounts: { slot: string; itemId: string }[], caption: string): string {
   const k = 3;
-  const weapons = Object.values(content.items).filter((i) => i.kind === "weapon");
-  const slots = ["roof", "front", "rear", "sideL1", "sideL2", "sideR1", "sideR2"];
   let back = "";
   let front = "";
-  slots.forEach((slot, i) => {
-    const wpn = weapons[i % weapons.length]!;
-    const e = manifest[`weapons/${wpn.id}.png`];
-    const url = fileUrl(`weapons/${wpn.id}.png`);
+  for (const { slot, itemId } of mounts) {
+    const code = weaponSprite(itemId);
+    const pic = filePic(`weapons/${itemId}.png`) ?? (code ? spritePic(code) : null);
     const p = mountPoint(slot, bus.w);
-    if (!p) return;
-    const x = (p.x - (e?.w ?? 16) / 2) * k;
-    const y = (p.y - (e?.h ?? 10)) * k;
-    const tag =
-      e && url
-        ? `<image class="px" href="${url}" x="${x}" y="${y}" width="${e.w * k}" height="${e.h * k}"${p.flip ? ` transform="translate(${2 * x + e.w * k},0) scale(-1,1)"` : ""}/>`
-        : `<rect x="${x}" y="${y}" width="${16 * k}" height="${10 * k}" fill="none" stroke="#ff4fd8" stroke-dasharray="4 3"/>`;
-    if (p.behind) back += tag;
+    if (!pic || !p) continue;
+    const x = (p.x - pic.w / 2) * k;
+    const y = (p.y - pic.h) * k;
+    const flip = p.flip ? ` transform="translate(${2 * x + pic.w * k},0) scale(-1,1)"` : "";
+    const tag = `<image class="px" href="${pic.url}" x="${x}" y="${y}" width="${pic.w * k}" height="${pic.h * k}"${flip}/>`;
+    if (p.far) back += tag;
     else front += tag;
-  });
-  const pad = 40;
+  }
+  const pad = 36;
+  const w = bus.w * k + 2 * pad;
+  const h = bus.h * k + 2 * pad;
+  return `
+    <div class="g-card">
+      <h3>${caption}</h3>
+      <svg viewBox="${-pad} ${-pad} ${w} ${h}" width="${w}" style="max-width:100%;height:auto;background:#2d3038;border-radius:6px">
+        <image class="px" href="${bus.url}" y="${(24 - bus.h) * k}" width="${bus.w * k}" height="${bus.h * k}"/><g style="filter:brightness(0.65)">${back}</g>${front}
+      </svg>
+    </div>`;
+}
+
+/** Сборки: игрок со всем оружием и каждый враг со своим — проверка точек крепления. */
+function assembly(): string {
+  const player = filePic("buses/bus_city.png") ?? spritePic(busSprite(PLAYER_LOOK));
+  const playerMounts = [
+    { slot: "roof", itemId: "wpn_mg" },
+    { slot: "front", itemId: "wpn_ram" },
+    { slot: "rear", itemId: "wpn_oil" },
+    { slot: "sideL1", itemId: "wpn_shotgun" },
+    { slot: "sideL2", itemId: "wpn_harpoon" },
+    { slot: "sideR1", itemId: "wpn_flamer" },
+    { slot: "sideR2", itemId: "wpn_shotgun" },
+  ];
+  const cards = [assembleSvg(player, playerMounts, "Автобус игрока, всё оружие")];
+  for (const e of Object.values(content.enemies)) {
+    // Сгенерированный враг нарисован вместе с оружием — ставим оружие только на автобус из кода.
+    const generated = filePic(`buses/${e.id}.png`);
+    const slots = enemyMountSlots(e.weapons, content);
+    const mounts = generated ? [] : e.weapons.flatMap((itemId, i) => (slots[i] ? [{ slot: slots[i]!, itemId }] : []));
+    cards.push(assembleSvg(generated ?? spritePic(busSprite(enemyLook(e.id))), mounts, content.locale[e.nameKey] ?? e.id));
+  }
   return `
     <section class="g-section">
-      <h2>Сборка: автобус игрока с оружием</h2>
-      <p class="muted">Оружие ставится серединой нижнего края в точки крепления. Розовая рамка — у оружия ещё нет картинки.</p>
-      <svg viewBox="${-pad} ${-pad} ${bus.w * k + 2 * pad} ${bus.h * k + 2 * pad}" width="${bus.w * k + 2 * pad}" style="max-width:100%;background:#2d3038;border-radius:8px">
-        ${back}<image class="px" href="${busUrl}" width="${bus.w * k}" height="${bus.h * k}"/>${front}
-      </svg>
+      <h2>Сборка: автобусы с оружием</h2>
+      <p class="muted">Так автобусы выглядят в бою. Оружие ставится серединой нижнего края в точки крепления; правый борт — за корпусом.</p>
+      <div class="g-grid">${cards.join("")}</div>
     </section>`;
 }
 

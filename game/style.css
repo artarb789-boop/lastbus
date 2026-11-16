@@ -153,6 +153,8 @@ h4 { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: upp
 .scene .hitbox.hit { animation: hit 0.22s steps(2) 1; }
 @keyframes hit { 0% { filter: brightness(2.2) saturate(0.2); } 100% { filter: none; } }
 .scene .muzzle { fill: #ffe9a8; opacity: 0; }
+.scene .mounts.back { filter: brightness(0.65); }
+.scene .mounts .broken { filter: grayscale(1) brightness(0.55); }
 .scene .muzzle.flash { animation: flash 0.16s ease-out 1; }
 @keyframes flash { 0% { opacity: 1; r: 12; } 100% { opacity: 0; r: 4; } }
 .scene .smoke { display: none; }

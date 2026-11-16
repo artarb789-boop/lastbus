@@ -3,6 +3,7 @@ import { BASE_PALETTE, hexToRgb } from "../game/art/palette";
 import { artCatalog, sizeOk } from "../game/art/catalog";
 import { bbox, blank, countColors, hasSemiTransparent, keyOut, pixelize, type Image, type Rgb } from "../tools/pixelize-lib";
 import { loadContent } from "../tools/load-content";
+import { enemyMountSlots, weaponSprite } from "../game/art/weapons";
 
 const MAGENTA: Rgb = [255, 0, 255];
 
@@ -113,5 +114,27 @@ describe("каталог картинок", () => {
     expect(sizeOk({ w: [44, 64], h: 24 }, 50, 24)).toBe(true);
     expect(sizeOk({ w: [44, 64], h: 24 }, 70, 24)).toBe(false);
     expect(sizeOk({ w: 16, h: 10 }, 16, 11)).toBe(false);
+  });
+});
+
+describe("оружие кодом", () => {
+  const content = loadContent();
+
+  it("у каждого оружия есть спрайт 16×10", () => {
+    for (const item of Object.values(content.items)) {
+      if (item.kind !== "weapon") continue;
+      const s = weaponSprite(item.id);
+      expect(s, item.id).not.toBeNull();
+      expect(s!.rows.length, item.id).toBe(10);
+      for (const r of s!.rows) expect(r.length, item.id).toBe(16);
+    }
+  });
+
+  it("всё оружие врагов получает место на корпусе", () => {
+    for (const e of Object.values(content.enemies)) {
+      const slots = enemyMountSlots(e.weapons, content);
+      expect(slots.every((s) => s !== null), e.id).toBe(true);
+      expect(new Set(slots).size, e.id).toBe(slots.length);
+    }
   });
 });

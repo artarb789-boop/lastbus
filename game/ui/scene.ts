@@ -6,6 +6,7 @@ import { bandOf, isLeaking, type CombatState, type RangeBand, type RunState } fr
 import { busSprite, enemyLook, playerLook } from "../art/buses";
 import { art, type ArtImage } from "../art/images";
 import { spriteSize, spriteUrl, type Sprite } from "../art/pixel";
+import { enemyMountSlots, mountPoint, weaponSprite } from "../art/weapons";
 import type { Store } from "../store";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -37,30 +38,6 @@ function fromSprite(s: Sprite): ArtImage {
   return { url: spriteUrl(s), w, h };
 }
 
-/**
- * Точки крепления оружия на сгенерированном автобусе игрока, в игровых пикселях от левого верхнего угла.
- * Оружие ставится серединой нижнего края в эту точку. Правый борт не виден — его оружие рисуется за корпусом.
- */
-export function mountPoint(slot: string, w: number): { x: number; y: number; behind: boolean; flip: boolean } | null {
-  switch (slot) {
-    case "roof":
-      return { x: Math.round(w / 2), y: 4, behind: false, flip: false };
-    case "front":
-      return { x: w - 2, y: 18, behind: false, flip: false };
-    case "rear":
-      return { x: 2, y: 18, behind: false, flip: true };
-    case "sideL1":
-      return { x: Math.round(w * 0.72), y: 13, behind: false, flip: false };
-    case "sideL2":
-      return { x: Math.round(w * 0.38), y: 13, behind: false, flip: false };
-    case "sideR1":
-      return { x: Math.round(w * 0.78), y: 9, behind: true, flip: false };
-    case "sideR2":
-      return { x: Math.round(w * 0.44), y: 9, behind: true, flip: false };
-    default:
-      return null;
-  }
-}
 
 /** Небо, дюны и дорога: сгенерированные слои, если утверждены, иначе векторные. */
 function backdrop(): string {
@@ -81,6 +58,20 @@ function backdrop(): string {
   ].join("");
 }
 
+/** Картинка оружия: сгенерированная, если утверждена, иначе спрайт кода. */
+function weaponImage(itemId: string): ArtImage | null {
+  const generated = art(`weapons/${itemId}.png`);
+  if (generated) return generated;
+  const s = weaponSprite(itemId);
+  return s ? fromSprite(s) : null;
+}
+
+interface Mount {
+  slot: string;
+  img: ArtImage;
+  broken: boolean;
+}
+
 interface Side {
   root: SVGGElement;
   hit: SVGGElement;
@@ -94,6 +85,8 @@ interface Side {
   width: number;
   look: string;
   mounts: string;
+  /** Где у оружия в каждом слоте вспыхивает выстрел, в координатах автобуса. */
+  barrels: Map<string, { x: number; y: number }>;
 }
 
 export class CombatScene {
@@ -149,8 +142,8 @@ export class CombatScene {
     root.setAttribute("class", `vehicle ${cls}`);
     root.innerHTML = `
       <g class="bob"><g class="hitbox">
-        <g class="mounts back"></g>
         <image class="px" x="0" y="0"/>
+        <g class="mounts back"></g>
         <g class="mounts front"></g>
         <g class="smoke"><circle cx="20" cy="10" r="7"/><circle cx="34" cy="4" r="9"/><circle cx="50" cy="0" r="6"/></g>
         <g class="fire"><path d="M0 0 q6 -14 12 0 q-6 6 -12 0z"/></g>
@@ -172,6 +165,7 @@ export class CombatScene {
       width: 0,
       look: "",
       mounts: "",
+      barrels: new Map(),
     };
   }
 
@@ -192,36 +186,60 @@ export class CombatScene {
     side.muzzle.setAttribute("cy", "6");
   }
 
-  /** Оружие игрока, у которого есть утверждённый спрайт: что и куда ставить. */
-  private mountList(store: Store): { slot: string; img: ArtImage }[] {
-    const out: { slot: string; img: ArtImage }[] = [];
+  /** Оружие игрока по слотам. Сломанное остаётся на месте, но тускнеет. */
+  private playerMounts(store: Store): Mount[] {
+    const out: Mount[] = [];
     for (const [slot, inst] of Object.entries(store.state.equipment)) {
-      if (!inst || inst.durability <= 0) continue;
-      const img = art(`weapons/${inst.itemId}.png`);
-      if (img) out.push({ slot, img });
+      if (!inst || store.content.items[inst.itemId]?.kind !== "weapon") continue;
+      const img = weaponImage(inst.itemId);
+      if (img) out.push({ slot, img, broken: inst.durability <= 0 });
     }
     return out;
   }
 
-  private setMounts(side: Side, list: { slot: string; img: ArtImage }[]): void {
-    const key = list.map((m) => `${m.slot}:${m.img.url}`).join("|") + `@${side.width}`;
+  /** Оружие врага, разложенное по креплениям (у врага слотов нет — только список). */
+  private enemyMounts(store: Store, c: CombatState): Mount[] {
+    const slots = enemyMountSlots(c.enemy.weapons.map((w) => w.itemId), store.content);
+    const out: Mount[] = [];
+    c.enemy.weapons.forEach((w, i) => {
+      const slot = slots[i];
+      const img = weaponImage(w.itemId);
+      if (slot && img) out.push({ slot, img, broken: w.hp <= 0 || w.disabled });
+    });
+    return out;
+  }
+
+  private setMounts(side: Side, list: Mount[]): void {
+    const key = list.map((m) => `${m.slot}:${m.img.url}:${m.broken}`).join("|") + `@${side.width}`;
     if (key === side.mounts) return;
     side.mounts = key;
     const w = side.width / SCALE;
     let back = "";
     let front = "";
-    for (const { slot, img } of list) {
+    side.barrels.clear();
+    for (const { slot, img, broken } of list) {
       const p = mountPoint(slot, w);
       if (!p) continue;
       const x = (p.x - img.w / 2) * SCALE;
       const y = (p.y - img.h) * SCALE;
+      // Выстрел — у дальнего от крепления края, чуть выше низа спрайта.
+      side.barrels.set(slot, { x: p.flip ? x : x + img.w * SCALE, y: y + (img.h - 3) * SCALE });
       const flip = p.flip ? ` transform="translate(${2 * x + img.w * SCALE},0) scale(-1,1)"` : "";
-      const tag = `<image class="px" href="${img.url}" x="${x}" y="${y}" width="${img.w * SCALE}" height="${img.h * SCALE}"${flip}/>`;
-      if (p.behind) back += tag;
+      const cls = broken ? "px broken" : "px";
+      const tag = `<image class="${cls}" href="${img.url}" x="${x}" y="${y}" width="${img.w * SCALE}" height="${img.h * SCALE}"${flip}/>`;
+      if (p.far) back += tag;
       else front += tag;
     }
     side.mountsBack.innerHTML = back;
     side.mountsFront.innerHTML = front;
+  }
+
+  /** Вспышка выстрела у ствола оружия в слоте (или над крышей, если оружия не видно). */
+  private flash(side: Side, slot: string): void {
+    const b = side.barrels.get(slot);
+    side.muzzle.setAttribute("cx", String(b ? b.x : side.width * 0.7));
+    side.muzzle.setAttribute("cy", String(b ? b.y : 6));
+    this.pulse(side.muzzle, "flash", 160);
   }
 
   /** Короткий класс-эффект: добавить и снять через ms. */
@@ -250,11 +268,13 @@ export class CombatScene {
     const fresh = c !== this.combat;
     this.combat = c;
 
-    // Сгенерированный автобус игрока рисуется без оружия, оружие ставится поверх по точкам крепления.
-    const playerArt = art("buses/bus_city.png");
-    this.setLook(this.player, playerArt ?? fromSprite(busSprite(playerLook(state, content))));
-    this.setMounts(this.player, playerArt ? this.mountList(store) : []);
-    this.setLook(this.enemy, art(`buses/${c.enemy.enemyId}.png`) ?? fromSprite(busSprite(enemyLook(c.enemy.enemyId))));
+    // Автобус игрока рисуется без оружия, оружие ставится поверх по точкам крепления.
+    this.setLook(this.player, art("buses/bus_city.png") ?? fromSprite(busSprite(playerLook(state, content))));
+    this.setMounts(this.player, this.playerMounts(store));
+    // Сгенерированный враг уже нарисован с оружием; врагу кодом оружие ставится так же, как игроку.
+    const enemyArt = art(`buses/${c.enemy.enemyId}.png`);
+    this.setLook(this.enemy, enemyArt ?? fromSprite(busSprite(enemyLook(c.enemy.enemyId))));
+    this.setMounts(this.enemy, enemyArt ? [] : this.enemyMounts(store, c));
 
     const enemyX = ENEMY_X0 + c.distance * ENEMY_STEP;
     this.player.root.style.transform = `translate(${PLAYER_X}px, ${BASE_Y}px)`;
@@ -282,7 +302,7 @@ export class CombatScene {
 
     this.el.classList.toggle("paused", paused);
 
-    if (!fresh) this.effects(state, c, enemyX);
+    if (!fresh) this.effects(store, c, enemyX);
     this.prev = {
       playerHull: state.hull.hp,
       enemyHull: c.enemy.hull.hp,
@@ -292,10 +312,13 @@ export class CombatScene {
   }
 
   /** Вспышки выстрелов и попаданий по разнице с прошлым кадром. */
-  private effects(state: RunState, c: CombatState, enemyX: number): void {
-    const fired = (now: number[], before: number[]) => now.some((ch, i) => ch === 0 && (before[i] ?? 0) > 1);
-    if (fired(c.weapons.map((w) => w.charge), this.prev.playerCharges)) this.pulse(this.player.muzzle, "flash", 160);
-    if (fired(c.enemy.weapons.map((w) => w.charge), this.prev.enemyCharges)) this.pulse(this.enemy.muzzle, "flash", 160);
+  private effects(store: Store, c: CombatState, enemyX: number): void {
+    const state = store.state;
+    const firedIndex = (now: number[], before: number[]) => now.findIndex((ch, i) => ch === 0 && (before[i] ?? 0) > 1);
+    const pi = firedIndex(c.weapons.map((w) => w.charge), this.prev.playerCharges);
+    if (pi >= 0) this.flash(this.player, c.weapons[pi]!.slotId);
+    const ei = firedIndex(c.enemy.weapons.map((w) => w.charge), this.prev.enemyCharges);
+    if (ei >= 0) this.flash(this.enemy, enemyMountSlots(c.enemy.weapons.map((w) => w.itemId), store.content)[ei] ?? "");
     const playerLost = this.prev.playerHull - state.hull.hp;
     const enemyLost = this.prev.enemyHull - c.enemy.hull.hp;
     if (playerLost > 0) {

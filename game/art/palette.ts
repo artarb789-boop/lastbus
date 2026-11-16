@@ -52,3 +52,6 @@ export function hexToRgb(hex: string): [number, number, number] {
 export function rgbToHex(r: number, g: number, b: number): string {
   return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 }
+
+/** Спрайт: строки символов-цветов и своя палитра поверх общей. */
+export type Sprite = { rows: string[]; palette: Record<string, string> };

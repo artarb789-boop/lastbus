@@ -146,19 +146,17 @@ export const PLAYER_LOOK: BusLook = {
 };
 
 export const ENEMY_LOOKS: Record<string, BusLook> = {
-  enemy_raider_minibus: { length: 44, ...band("enemy_raider_minibus"), rust: 0.08, roofGun: "mg", seed: 11 },
+  enemy_raider_minibus: { length: 44, ...band("enemy_raider_minibus"), rust: 0.08, seed: 11 },
   enemy_raider_sawnoff: { length: 48, ...band("enemy_raider_sawnoff"), rust: 0.15, seed: 12 },
-  enemy_rival_carrier: { length: 60, ...band("enemy_rival_carrier"), armor: true, roofGun: "mg", seed: 13 },
-  enemy_rammer: { length: 54, ...band("enemy_rammer"), ram: true, armor: true, rust: 0.1, seed: 14 },
+  enemy_rival_carrier: { length: 60, ...band("enemy_rival_carrier"), armor: true, seed: 13 },
+  enemy_rammer: { length: 54, ...band("enemy_rammer"), armor: true, rust: 0.1, seed: 14 },
   enemy_siphoners: { length: 52, ...band("enemy_siphoners"), tankOnRoof: true, rust: 0.1, seed: 15 },
-  enemy_nemesis: { length: 60, ...band("enemy_nemesis"), skull: true, armor: true, roofGun: "mg", seed: 16 },
+  enemy_nemesis: { length: 60, ...band("enemy_nemesis"), skull: true, armor: true, seed: 16 },
   enemy_boss_prison_bus: {
     length: 76,
     ...band("enemy_boss_prison_bus"),
     grate: true,
     armor: true,
-    ram: true,
-    roofGun: "rockets",
     seed: 17,
   },
 };
@@ -171,18 +169,9 @@ export function enemyLook(enemyId: string): BusLook {
 
 /** Облик автобуса игрока по его снаряжению: оружие на крыше, броня, таран. */
 export function playerLook(state: RunState, content: Content): BusLook {
-  const item = (slot: string) => {
-    const inst = state.equipment[slot];
-    return inst && inst.durability > 0 ? content.items[inst.itemId] : undefined;
-  };
-  const roof = item("roof");
-  const front = item("front");
-  const anyArmor = ["sideL1", "sideL2", "sideR1", "sideR2"].some((s) => item(s)?.kind === "armor");
-  return {
-    ...PLAYER_LOOK,
-    roofGun: roof?.tags.includes("heavy") ? "rockets" : roof?.kind === "weapon" ? "mg" : null,
-    armor: anyArmor,
-    ram: front?.id === "wpn_ram",
-    spikes: front?.id === "wpn_spikes",
-  };
+  // Оружие (включая таран и шипы) ставится отдельными спрайтами, у корпуса — только броня.
+  const anyArmor = Object.values(state.equipment).some(
+    (inst) => inst && inst.durability > 0 && content.items[inst.itemId]?.kind === "armor",
+  );
+  return { ...PLAYER_LOOK, armor: anyArmor };
 }

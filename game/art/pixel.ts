@@ -4,7 +4,9 @@
  * масштабируется целыми коэффициентами с image-rendering: pixelated.
  */
 
-export type Sprite = { rows: string[]; palette: Record<string, string> };
+import type { Sprite } from "./palette";
+
+export type { Sprite };
 
 import { BASE_PALETTE } from "./palette";
 
