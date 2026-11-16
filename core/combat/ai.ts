@@ -56,8 +56,8 @@ export function retargetEnemy(state: RunState, content: Content, combat: CombatS
   for (const w of enemy.weapons) w.target = next;
 }
 
-export function enemyIsFleeing(content: Content, combat: CombatState): boolean {
-  const def = content.enemies[combat.enemy.enemyId]!;
+export function enemyIsFleeing(_content: Content, combat: CombatState): boolean {
+  const def = combat.enemy.def;
   return def.fleeAtHull !== undefined && combat.enemy.hull.hp <= def.fleeAtHull * combat.enemy.hull.max;
 }
 

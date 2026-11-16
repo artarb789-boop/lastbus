@@ -10,7 +10,9 @@ export {
   type RepairableSystem,
 } from "./commands";
 export { bandOf, canEscape, enemyEvasion, playerEvasion, startCombat, weaponManned } from "./combat/engine";
-export { newRun, replay, DEFAULT_BUS } from "./run";
+export { newRun, replay, DEFAULT_BUS, type RunOptions } from "./run";
+export { DEFAULT_DRIVER, driverDef } from "./driver";
+export { isFinalMeeting } from "./nemesis";
 export { fuelCost } from "./bus";
 export { fareFor, freeSeats, capacity, seatById, occupant, healthyPassengers, navigatorManned } from "./crew";
 export {

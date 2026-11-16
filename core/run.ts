@@ -1,16 +1,27 @@
 import { applyCommand, type Command } from "./commands";
 import type { Content } from "./content";
 import { boardPassengers } from "./crew";
+import { DEFAULT_DRIVER, driverStartPerks } from "./driver";
 import { makeItem } from "./equipment";
 import { generateRegion } from "./map/generate";
+import { createNemesis } from "./nemesis";
 import { createRng } from "./rng";
 import type { RunState } from "./state";
 
 export const DEFAULT_BUS = "bus_city";
 
-export function newRun(seed: number, content: Content, busId: string = DEFAULT_BUS): RunState {
+export interface RunOptions {
+  busId?: string;
+  driverId?: string;
+}
+
+export function newRun(seed: number, content: Content, opts: RunOptions = {}): RunState {
+  const busId = opts.busId ?? DEFAULT_BUS;
+  const driverId = opts.driverId ?? DEFAULT_DRIVER;
   const busDef = content.buses[busId];
   if (!busDef) throw new Error(`unknown bus ${busId}`);
+  const driverDef = content.drivers[driverId];
+  if (!driverDef) throw new Error(`unknown driver ${driverId}`);
   const rng = createRng(seed);
   const map = generateRegion(rng, content.balance);
   const state: RunState = {
@@ -31,11 +42,12 @@ export function newRun(seed: number, content: Content, busId: string = DEFAULT_B
       wheels: { hp: busDef.systems.wheels, max: busDef.systems.wheels },
       cabin: { hp: busDef.systems.cabin, max: busDef.systems.cabin },
     },
-    driver: { status: "healthy" },
+    driver: { id: driverId, status: "healthy" },
     passengers: [],
     nextPassengerId: 1,
     resources: { ...content.balance.startResources },
     contested: [],
+    nemesis: createNemesis(rng, content),
     phase: { type: "route" },
     stats: {
       delivered: 0,
@@ -59,6 +71,14 @@ export function newRun(seed: number, content: Content, busId: string = DEFAULT_B
   for (const [slotId, itemId] of Object.entries(busDef.startEquipment)) {
     state.equipment[slotId] = makeItem(state, content, itemId);
   }
+  const perks = driverStartPerks(driverDef);
+  for (const p of perks.equipment) state.equipment[p.slot] = makeItem(state, content, p.item);
+  for (const p of perks.resources) {
+    for (const [k, v] of Object.entries(p.delta)) {
+      const key = k as keyof typeof state.resources;
+      state.resources[key] = Math.max(0, state.resources[key] + (v ?? 0));
+    }
+  }
   boardPassengers(state, content, content.balance.startPassengers);
   return state;
 }
@@ -67,8 +87,8 @@ export function newRun(seed: number, content: Content, busId: string = DEFAULT_B
  * Воспроизводит забег по seed и списку команд.
  * Команды, которые были отклонены в оригинале, отклоняются и здесь, поэтому результат совпадает.
  */
-export function replay(seed: number, commands: readonly Command[], content: Content, busId: string = DEFAULT_BUS): RunState {
-  const state = newRun(seed, content, busId);
+export function replay(seed: number, commands: readonly Command[], content: Content, opts: RunOptions = {}): RunState {
+  const state = newRun(seed, content, opts);
   for (const cmd of commands) applyCommand(state, cmd, content);
   return state;
 }

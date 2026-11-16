@@ -95,6 +95,36 @@ export function checkContent(c: Content): string[] {
     }
   }
 
+  // ---- Заклятый соперник ----
+  const nem = c.balance.nemesis;
+  const tmpl = c.enemies[nem.template];
+  if (!tmpl) err("balance.nemesis", `unknown template ${nem.template}`);
+  else if (tmpl.kind !== "nemesis") err("balance.nemesis", `template ${nem.template} must have kind "nemesis"`);
+  for (const k of nem.names) if (!hasText(k)) err("balance.nemesis", `missing text ${k}`);
+  for (const ws of nem.bonusWeapons) for (const w of ws) if (!c.items[w]?.weapon) err("balance.nemesis", `unknown weapon ${w}`);
+  if (!c.items[nem.finalTrophy]) err("balance.nemesis", `unknown trophy ${nem.finalTrophy}`);
+  const cols = nem.meetColumns;
+  if (cols.some((col, i) => i > 0 && col <= cols[i - 1]!)) err("balance.nemesis", "meetColumns must increase");
+  if (cols.some((col) => col >= c.balance.region.columns - 1)) err("balance.nemesis", "meetColumns must be before the boss column");
+
+  // ---- Водители ----
+  if (Object.keys(c.drivers).length === 0) err("drivers", "need at least one driver");
+  for (const d of Object.values(c.drivers)) {
+    const where = `driver ${d.id}`;
+    if (!hasText(d.nameKey)) err(where, `missing text ${d.nameKey}`);
+    if (!hasText(d.descKey)) err(where, `missing text ${d.descKey}`);
+    for (const perk of d.perks) {
+      if (perk.type !== "startEquipment") continue;
+      const item = c.items[perk.item];
+      if (!item) err(where, `unknown item ${perk.item}`);
+      for (const bus of Object.values(c.buses)) {
+        const slot = bus.slots.find((s) => s.id === perk.slot);
+        if (!slot) err(where, `bus ${bus.id} has no slot ${perk.slot}`);
+        else if (item && !item.slotKinds.includes(slot.kind)) err(where, `${perk.item} does not fit ${perk.slot}`);
+      }
+    }
+  }
+
   // ---- Оружие и броня ----
   for (const item of items) {
     if (item.kind === "armor" && !item.armor) err(`item ${item.id}`, "armor item needs armor.rating");

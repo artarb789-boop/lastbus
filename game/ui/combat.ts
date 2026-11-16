@@ -19,6 +19,7 @@ const SOURCE_LABEL: Record<string, string> = {
   ambush: "Засада!",
   intercept: "Перехват соперника",
   boss: "Босс региона",
+  nemesis: "Заклятый соперник",
 };
 
 const W = 900;
@@ -26,7 +27,6 @@ const H = 170;
 
 function scene(store: Store, c: CombatState): string {
   const { state, content } = store;
-  const def = content.enemies[c.enemy.enemyId]!;
   const px = 110;
   const ex = px + 170 + c.distance * 160;
   const bands = (["contact", "near", "mid", "far"] as RangeBand[])
@@ -53,7 +53,7 @@ function scene(store: Store, c: CombatState): string {
       ${bands}
       ${tether}
       ${busShape(px, "player", "Ваш автобус", state.hull.hp, state.hull.max, false)}
-      ${busShape(ex, "enemy", t(content, def.nameKey), c.enemy.hull.hp, c.enemy.hull.max, true)}
+      ${busShape(ex, "enemy", t(content, c.enemy.name), c.enemy.hull.hp, c.enemy.hull.max, true)}
     </svg>`;
 }
 
@@ -62,7 +62,7 @@ export function renderCombat(store: Store): string {
   if (state.phase.type !== "combat") return "";
   const c = state.phase.combat;
   const e = c.enemy;
-  const def = content.enemies[e.enemyId]!;
+  const def = e.def;
   const band = bandOf(c.distance);
   const seconds = (c.tick * content.balance.combat.tickSeconds).toFixed(1);
 
@@ -130,7 +130,7 @@ export function renderCombat(store: Store): string {
   return `
     <section class="combat">
       <div class="combat-head">
-        <h2>${esc(SOURCE_LABEL[c.source] ?? c.source)}: ${esc(t(content, def.nameKey))}</h2>
+        <h2>${esc(SOURCE_LABEL[c.source] ?? c.source)}: ${esc(t(content, e.name))}</h2>
         <div class="time">
           <button class="primary" ${uiAttr("togglePause")}>${ui.paused ? "▶ Продолжить" : "⏸ Пауза"}</button>
           ${[1, 2, 4].map((s) => `<button class="${ui.speed === s ? "on" : ""}" ${uiAttr("speed", s)}>×${s}</button>`).join("")}

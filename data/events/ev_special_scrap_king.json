@@ -1,0 +1,57 @@
+{
+  "id": "ev_special_scrap_king",
+  "kind": "special",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.scrap_king.text",
+  "choices": [
+    {
+      "textKey": "ev.scrap_king.weapon",
+      "requires": {
+        "resources": {
+          "parts": 4
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "parts": -4
+          }
+        },
+        {
+          "type": "gainItem",
+          "itemKinds": [
+            "weapon"
+          ]
+        }
+      ]
+    },
+    {
+      "textKey": "ev.scrap_king.armor",
+      "requires": {
+        "resources": {
+          "tokens": 6
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -6
+          }
+        },
+        {
+          "type": "gainItem",
+          "itemKinds": [
+            "armor"
+          ]
+        }
+      ]
+    },
+    {
+      "textKey": "ev.scrap_king.leave",
+      "effects": []
+    }
+  ]
+}

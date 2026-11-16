@@ -2,10 +2,10 @@
  * Сборка Content из сырых JSON-файлов. Чистая функция: файлы читает загрузчик
  * (tools/load-content.ts для Node, game/content.ts для браузера).
  */
-import type { Balance, BusDef, Content, EnemyDef, EventDef, ItemDef, ShopDef } from "./content";
+import type { Balance, BusDef, Content, DriverDef, EnemyDef, EventDef, ItemDef, ShopDef } from "./content";
 import type { ShopKind } from "./state";
 
-export type SchemaName = "balance" | "item" | "bus" | "shop" | "event" | "enemy" | "locale";
+export type SchemaName = "balance" | "item" | "bus" | "shop" | "event" | "enemy" | "driver" | "locale";
 
 export interface RawFile {
   /** Путь относительно data/, например "weapons/wpn_mg.json". */
@@ -22,6 +22,7 @@ export const DATA_GROUPS: [string, SchemaName][] = [
   ["shops", "shop"],
   ["events", "event"],
   ["enemies", "enemy"],
+  ["drivers", "driver"],
   ["locale/ru", "locale"],
 ];
 
@@ -43,6 +44,7 @@ export function buildContent(raw: RawFile[]): Content {
     items: {},
     shops: {} as Record<ShopKind, ShopDef>,
     enemies: {},
+    drivers: {},
     events: [],
     locale: {},
   };
@@ -72,6 +74,9 @@ export function buildContent(raw: RawFile[]): Content {
         break;
       case "enemy":
         content.enemies[name] = data as EnemyDef;
+        break;
+      case "driver":
+        content.drivers[name] = data as DriverDef;
         break;
       case "locale":
         for (const [k, v] of Object.entries(data as Record<string, string>)) {

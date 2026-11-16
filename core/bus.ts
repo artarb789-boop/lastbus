@@ -1,4 +1,5 @@
 import type { Content } from "./content";
+import { driverFuelMult } from "./driver";
 import { fuelMult } from "./equipment";
 import type { MapEdge, Pace, RunState } from "./state";
 
@@ -12,5 +13,6 @@ export function fuelCost(state: RunState, content: Content, edge: MapEdge, pace:
   const paceMult = pace === "rush" ? b.rushFuelMult : 1;
   const engineMult = state.systems.engine.hp <= 0 ? b.combat.brokenEngineFuelMult : 1;
   const wheelsMult = state.systems.wheels.hp <= 0 ? b.combat.brokenWheelsFuelMult : 1;
-  return Math.ceil(b.roads[edge.road].fuel * fuelMult(state, content) * paceMult * engineMult * wheelsMult);
+  const mult = fuelMult(state, content) * driverFuelMult(state, content) * paceMult * engineMult * wheelsMult;
+  return Math.ceil(b.roads[edge.road].fuel * mult);
 }

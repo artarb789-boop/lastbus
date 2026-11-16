@@ -1,0 +1,42 @@
+{
+  "id": "ev_road_stuck_truck",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.stuck_truck.text",
+  "choices": [
+    {
+      "textKey": "ev.stuck_truck.help",
+      "requires": {
+        "healthyPassengers": 2
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": 5
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.stuck_truck.rob",
+      "requires": {
+        "itemTag": "ranged"
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": 6,
+            "tokens": 2
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.stuck_truck.pass",
+      "effects": []
+    }
+  ]
+}

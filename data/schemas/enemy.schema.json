@@ -30,7 +30,8 @@
       "enum": [
         "raider",
         "rival",
-        "boss"
+        "boss",
+        "nemesis"
       ]
     },
     "tier": {

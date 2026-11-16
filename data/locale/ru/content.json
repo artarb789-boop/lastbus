@@ -36,5 +36,18 @@
   "enemy.enemy_rival_carrier.name": "Автобус конкурентов",
   "enemy.enemy_rammer.name": "Таранщик",
   "enemy.enemy_siphoners.name": "Сливщики",
-  "enemy.enemy_boss_prison_bus.name": "Тюремный автобус"
+  "enemy.enemy_boss_prison_bus.name": "Тюремный автобус",
+  "driver.drv_trucker.name": "Дальнобойщик",
+  "driver.drv_trucker.desc": "Знает, как беречь топливо: расход −15%. Берёт в дорогу лишнюю еду.",
+  "driver.drv_racer.name": "Гонщик",
+  "driver.drv_racer.desc": "Отрыв в бою копится в полтора раза быстрее, +5% к уклонению.",
+  "driver.drv_guard.name": "Бывший инкассатор",
+  "driver.drv_guard.desc": "Привёз с прошлой работы тяжёлый бронелист на правый борт и коробку патронов.",
+  "enemy.enemy_nemesis.name": "Заклятый соперник",
+  "nemesis.name.baron": "Ржавый Барон",
+  "nemesis.name.horn": "Сестра Гудок",
+  "nemesis.name.conductor": "Хромой Кондуктор",
+  "nemesis.name.bulldog": "Бульдог",
+  "nemesis.name.redlight": "Рыжая Фара",
+  "nemesis.name.widow": "Вдова Тормоз"
 }

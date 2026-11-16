@@ -153,3 +153,9 @@ h4 { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: upp
 .intent { background: #3a2423; border-left: 3px solid var(--red); padding: 4px 8px; }
 .log { font-size: 12px; color: var(--muted); padding-left: 16px; max-height: 120px; overflow: hidden; }
 .row { display: flex; flex-wrap: wrap; }
+
+/* ---------- Выбор водителя ---------- */
+.layout.single { grid-template-columns: minmax(0, 900px); justify-content: center; }
+.drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+.driver-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; }
+.driver-card p { flex: 1; }

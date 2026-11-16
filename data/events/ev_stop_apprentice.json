@@ -1,0 +1,28 @@
+{
+  "id": "ev_stop_apprentice",
+  "kind": "stop",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.apprentice.text",
+  "choices": [
+    {
+      "textKey": "ev.apprentice.take",
+      "effects": [
+        {
+          "type": "addPassengers",
+          "count": 1
+        },
+        {
+          "type": "resource",
+          "delta": {
+            "parts": 2
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.apprentice.refuse",
+      "effects": []
+    }
+  ]
+}

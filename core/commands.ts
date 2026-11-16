@@ -35,6 +35,7 @@ import { findEdge, findNode, outgoingEdges } from "./map/generate";
 import { canEscape, combatTick, startCombat } from "./combat/engine";
 import type { EnemyKind } from "./content";
 import { freeSeats } from "./crew";
+import { afterNemesisFight, nemesisDef, nemesisDue } from "./nemesis";
 import { leakAfterLeg, repairTankCost, repairTankFull } from "./tank";
 import { chance, int, pick, weighted } from "./rng";
 import type {
@@ -179,8 +180,13 @@ function travel(state: RunState, content: Content, edge: MapEdge, pace: Pace): v
   feedIfDue(state, content);
   if (state.phase.type === "over") return;
 
-  // В пути: дорожное событие или засада. Перед боссом — ни того, ни другого.
+  // В пути: заклятый соперник, дорожное событие или засада. Перед боссом — ничего из этого.
   const target = findNode(state.map, edge.to);
+  if (target.kind !== "boss" && nemesisDue(state, content, target.column)) {
+    const combat = startCombat(state, content, nemesisDef(state, content), "nemesis", state.nemesis.nameKey);
+    state.phase = { type: "combat", combat, then: { type: "arrive", pace } };
+    return;
+  }
   if (target.kind !== "boss") {
     if (chance(state.rng, content.balance.roadEventChance)) {
       const ev = pickEvent(state, content, "road", { road: edge.road });
@@ -398,7 +404,7 @@ function escapeCmd(state: RunState, content: Content): CommandResult {
 }
 
 function rollLoot(state: RunState, content: Content, combat: CombatState, share: number): Partial<Resources> {
-  const def = content.enemies[combat.enemy.enemyId]!;
+  const def = combat.enemy.def;
   const got: Partial<Resources> = {};
   const fuelBefore = state.resources.fuel;
   for (const k of RESOURCE_KINDS) {
@@ -422,14 +428,15 @@ function endCombat(state: RunState, content: Content, combat: CombatState, then:
     return;
   }
   if (result === "escaped") state.stats.escapes += 1;
+  const extraItems = combat.source === "nemesis" ? afterNemesisFight(state, content, result) : [];
   if (result === "won" || result === "surrendered") {
     state.stats.fightsWon += 1;
-    const def = content.enemies[combat.enemy.enemyId]!;
+    const def = combat.enemy.def;
     const won = result === "won";
     const loot: LootOffer = {
       resources: rollLoot(state, content, combat, won ? 1 : 0.5),
       // С разбитого автобуса можно снять уцелевшее оружие (GDD 8.5).
-      items: won ? [...new Set(combat.enemy.weapons.filter((w) => w.hp > 0).map((w) => w.itemId))] : [],
+      items: [...new Set([...extraItems, ...(won ? combat.enemy.weapons.filter((w) => w.hp > 0).map((w) => w.itemId) : [])])],
       survivors: won ? int(state.rng, def.loot.survivors[0], def.loot.survivors[1]) : 0,
     };
     state.phase = { type: "loot", loot, result, then };

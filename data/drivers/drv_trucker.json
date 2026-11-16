@@ -1,0 +1,17 @@
+{
+  "id": "drv_trucker",
+  "nameKey": "driver.drv_trucker.name",
+  "descKey": "driver.drv_trucker.desc",
+  "perks": [
+    {
+      "type": "fuelMult",
+      "value": 0.85
+    },
+    {
+      "type": "startResources",
+      "delta": {
+        "food": 2
+      }
+    }
+  ]
+}

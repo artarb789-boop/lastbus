@@ -1,0 +1,48 @@
+{
+  "id": "ev_special_old_depot",
+  "kind": "special",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.old_depot.text",
+  "choices": [
+    {
+      "textKey": "ev.old_depot.parts",
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "parts": 4
+          }
+        },
+        {
+          "type": "loseActions",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.old_depot.rest",
+      "requires": {
+        "resources": {
+          "food": 2
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": -2
+          }
+        },
+        {
+          "type": "healWounded",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "textKey": "ev.old_depot.leave",
+      "effects": []
+    }
+  ]
+}

@@ -13,6 +13,30 @@ import {
 import type { Store } from "../store";
 import { cmdAttr, esc, itemName, NODE, RES, SHOP, SYSTEM, t, uiAttr } from "./text";
 
+/** Выбор водителя перед новым забегом. */
+export function renderDriverPick(store: Store): string {
+  const { content } = store;
+  const cards = Object.values(content.drivers)
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(
+      (d) => `
+        <div class="driver-card">
+          <h3>${esc(t(content, d.nameKey))}</h3>
+          <p>${esc(t(content, d.descKey))}</p>
+          <button class="primary" ${uiAttr("pickDriver", d.id)}>Ехать с этим водителем</button>
+        </div>`,
+    )
+    .join("");
+  const back = store.commands.length > 0 ? `<button ${uiAttr("cancelDriver")}>Вернуться к текущему забегу</button>` : "";
+  return `
+    <section class="panel">
+      <h2>Кто сядет за руль?</h2>
+      <p class="muted">Водитель — единственный в автобусе со своей особенностью. Остальных вы подберёте по дороге.</p>
+      <div class="drivers">${cards}</div>
+      ${back}
+    </section>`;
+}
+
 export function renderPanel(store: Store): string {
   switch (store.state.phase.type) {
     case "route":

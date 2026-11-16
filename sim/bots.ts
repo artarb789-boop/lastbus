@@ -51,12 +51,13 @@ function canTake(state: RunState, content: Content, edge: MapEdge, pace: Pace): 
   return pace !== "rush" && sellsFuel && state.resources.tokens >= 4;
 }
 
-/** Пост у оружия имеет смысл занимать, только если в слоте целое оружие. */
-function postHasWeapon(state: RunState, seatId: string): boolean {
+/** Пост у оружия имеет смысл занимать, только если в слоте целое оружие (а не, например, бронелист). */
+function postHasWeapon(state: RunState, seatId: string, content: Content): boolean {
   const seat = seatById(state, seatId);
   if (!seat?.slot) return false;
   const inst = state.equipment[seat.slot];
-  return inst !== null && inst !== undefined && inst.durability > 0;
+  if (!inst || inst.durability <= 0) return false;
+  return content.items[inst.itemId]?.kind === "weapon";
 }
 
 /**
@@ -64,7 +65,7 @@ function postHasWeapon(state: RunState, seatId: string): boolean {
  * раненых — с постов и мест у бортов на защищённые места;
  * здоровых — на посты у оружия, затем к механику и штурману.
  */
-function crewFix(state: RunState): Command | null {
+function crewFix(state: RunState, content: Content): Command | null {
   const safeFree = () =>
     state.bus.seats.find((s) => s.role === "plain" && !isExposed(state, s.id) && !occupant(state, s.id));
 
@@ -80,7 +81,7 @@ function crewFix(state: RunState): Command | null {
   const wanted = state.bus.seats.filter(
     (s) =>
       !occupant(state, s.id) &&
-      ((s.role === "weapon" && postHasWeapon(state, s.id)) || s.role === "mechanic" || s.role === "navigator"),
+      ((s.role === "weapon" && postHasWeapon(state, s.id, content)) || s.role === "mechanic" || s.role === "navigator"),
   );
   // Сначала оружие.
   wanted.sort((a, b) => (a.role === "weapon" ? 0 : 1) - (b.role === "weapon" ? 0 : 1));
@@ -88,7 +89,7 @@ function crewFix(state: RunState): Command | null {
     const idle = state.passengers.find(
       (p) =>
         p.status === "healthy" &&
-        (seatById(state, p.seat)?.role === "plain" || (seatById(state, p.seat)?.role === "weapon" && !postHasWeapon(state, p.seat))),
+        (seatById(state, p.seat)?.role === "plain" || (seatById(state, p.seat)?.role === "weapon" && !postHasWeapon(state, p.seat, content))),
     );
     if (idle) return { type: "seatPassenger", passengerId: idle.id, seatId: post.id };
   }
@@ -157,7 +158,7 @@ function bestBand(state: RunState, content: Content): RangeBand {
 function combatCommand(state: RunState, content: Content, style: "careful" | "greedy"): Command {
   if (state.phase.type !== "combat") throw new Error("not in combat");
   const c = state.phase.combat;
-  const fix = crewFix(state);
+  const fix = crewFix(state, content);
   if (fix) return fix;
 
   const danger = c.source !== "boss" && state.hull.hp <= state.hull.max * 0.35;
@@ -268,7 +269,7 @@ export function makeCarefulBot(opts: { scavengers: number; heal: boolean; buyGea
       }
 
       if (phase.type === "stop") {
-        const fix = crewFix(state);
+        const fix = crewFix(state, content);
         if (fix) return fix;
         if (phase.actionsLeft > 0) {
           const wounded = state.passengers.some((p) => p.status === "wounded") || state.driver.status === "wounded";
@@ -293,7 +294,7 @@ export function makeCarefulBot(opts: { scavengers: number; heal: boolean; buyGea
       }
 
       // route
-      const fix = crewFix(state);
+      const fix = crewFix(state, content);
       if (fix) return fix;
       const need = needsOf(state);
       const guns = activeWeapons(state, content).length;

@@ -1,0 +1,41 @@
+{
+  "id": "ev_stop_bounty",
+  "kind": "stop",
+  "weight": 7,
+  "conditions": [],
+  "textKey": "ev.bounty.text",
+  "choices": [
+    {
+      "textKey": "ev.bounty.take",
+      "requires": {
+        "healthyPassengers": 2,
+        "itemTag": "ranged"
+      },
+      "check": {
+        "chance": 0.6
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": 6
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        },
+        {
+          "type": "loseActions",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.bounty.decline",
+      "effects": []
+    }
+  ]
+}

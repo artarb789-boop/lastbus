@@ -15,6 +15,7 @@ const SCHEMA_FILES: Record<Exclude<SchemaName, "locale">, string> = {
   shop: "shop.schema.json",
   event: "event.schema.json",
   enemy: "enemy.schema.json",
+  driver: "driver.schema.json",
 };
 
 const LOCALE_SCHEMA = {

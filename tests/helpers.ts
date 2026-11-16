@@ -4,9 +4,13 @@ import { loadContent } from "../tools/load-content";
 
 export const content: Content = loadContent();
 
-/** Копия контента, которую тест может менять. */
+/** Водитель без особенностей: тесты считают расход и уклонение без поправок. */
+export const NEUTRAL_DRIVER = "drv_test_neutral";
+
+/** Копия контента, которую тест может менять. В ней есть нейтральный водитель. */
 export function contentWith(patch: (c: Content) => void): Content {
   const c = structuredClone(content);
+  c.drivers[NEUTRAL_DRIVER] = { id: NEUTRAL_DRIVER, nameKey: "test", descKey: "test", perks: [] };
   patch(c);
   return c;
 }
@@ -29,7 +33,7 @@ export function linearMap(kinds: NodeKind[]): RegionMap {
  * чтобы тест проверял одну вещь; c — контент для этого забега.
  */
 export function runOn(seed: number, kinds: NodeKind[], c: Content = quietContent): RunState {
-  const s = newRun(seed, c);
+  const s = newRun(seed, c, { driverId: NEUTRAL_DRIVER });
   s.map = linearMap(kinds);
   s.nodeId = s.map.startId;
   s.contested = [];
@@ -46,6 +50,7 @@ export const quietContent: Content = contentWith((c) => {
   c.balance.tank.hitChance = 0;
   c.balance.tank.hitChanceOnLoss = 0;
   c.balance.combat.ambushChance = 0;
+  c.balance.nemesis.meetColumns = [];
   for (const r of Object.values(c.balance.roads)) r.wearChance = 0;
 });
 

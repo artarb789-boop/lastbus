@@ -56,6 +56,27 @@ export interface Balance {
   sellMult: number;
   visibility: { base: number; navigatorBonus: number };
   combat: CombatBalance;
+  nemesis: NemesisBalance;
+}
+
+/** Заклятый соперник (GDD 9.2): именной автобус, который перехватывает вас на заданных столбцах карты. */
+export interface NemesisBalance {
+  /** id шаблона в data/enemies (kind "nemesis"). */
+  template: string;
+  /** На каких столбцах карты происходят встречи; последняя — решающая. */
+  meetColumns: number[];
+  /** Ключи текстов с именами. */
+  names: string[];
+  /** Прибавка к корпусу за каждый уровень. */
+  hullPerLevel: number;
+  /** Дополнительное оружие к встрече с этим номером (накопительно). */
+  bonusWeapons: string[][];
+  /** До решающей встречи соперник отступает, потеряв столько корпуса. */
+  surrenderAtHull: number;
+  /** Сколько жетонов он забирает, если вы ушли от боя. */
+  stealTokens: [number, number];
+  /** Трофей за окончательную победу. */
+  finalTrophy: string;
 }
 
 /** Настройки боя (GDD 8). Время в тиках: один тик — tickSeconds секунд реального времени в клиенте. */
@@ -181,7 +202,7 @@ export interface BusDef {
 
 // ---------- Враги ----------
 
-export type EnemyKind = "raider" | "rival" | "boss";
+export type EnemyKind = "raider" | "rival" | "boss" | "nemesis";
 
 /** Профили ИИ: кого обстреливает и на какую дистанцию стремится. */
 export type AiProfile = "gunner" | "berserk" | "rammer" | "tank_hunter" | "sniper";
@@ -279,6 +300,25 @@ export interface EventDef {
   choices: EventChoice[];
 }
 
+// ---------- Водители ----------
+
+export type DriverPerk =
+  /** Множитель расхода топлива. */
+  | { type: "fuelMult"; value: number }
+  /** Множитель скорости накопления отрыва в бою. */
+  | { type: "escapeMult"; value: number }
+  /** Прибавка к уклонению, пока водитель здоров. */
+  | { type: "evasionBonus"; value: number }
+  | { type: "startEquipment"; slot: string; item: string }
+  | { type: "startResources"; delta: Partial<Resources> };
+
+export interface DriverDef {
+  id: string;
+  nameKey: string;
+  descKey: string;
+  perks: DriverPerk[];
+}
+
 // ---------- Весь контент ----------
 
 export interface Content {
@@ -287,6 +327,7 @@ export interface Content {
   items: Record<string, ItemDef>;
   shops: Record<ShopKind, ShopDef>;
   enemies: Record<string, EnemyDef>;
+  drivers: Record<string, DriverDef>;
   events: EventDef[];
   /** Тексты: ключ → строка. */
   locale: Record<string, string>;

@@ -2,9 +2,10 @@
  * Состояние клиента: забег из ядра, список команд и состояние интерфейса.
  * Сохранение — это seed и команды: при загрузке забег воспроизводится заново.
  */
-import { applyCommand, newRun, replay, type Command, type Content, type RunState } from "../core";
+import { applyCommand, DEFAULT_DRIVER, newRun, replay, type Command, type Content, type RunState } from "../core";
 
-const SAVE_KEY = "lastbus.save.v1";
+// Версия меняется, когда меняется логика забега: старое сохранение воспроизвелось бы иначе.
+const SAVE_KEY = "lastbus.save.v2";
 
 export interface UiState {
   /** Выбранный пассажир для пересадки, высадки или обыска. */
@@ -21,6 +22,8 @@ export interface UiState {
   lootSurvivors: boolean;
   /** Цель, которую раздаём стволам в бою кликом по врагу. */
   aimSlot: string | null;
+  /** Показан выбор водителя для нового забега. */
+  choosingDriver: boolean;
 }
 
 export interface Store {
@@ -42,6 +45,7 @@ function freshUi(): UiState {
     lootItem: null,
     lootSurvivors: true,
     aimSlot: null,
+    choosingDriver: false,
   };
 }
 
@@ -53,18 +57,22 @@ export function createStore(content: Content): Store {
   const saved = loadSave();
   if (saved) {
     try {
-      const state = replay(saved.seed, saved.commands, content);
+      const driverId = saved.driverId ?? DEFAULT_DRIVER;
+      const state = replay(saved.seed, saved.commands, content, { driverId });
       return { content, state, commands: saved.commands, ui: freshUi(), error: null };
     } catch (e) {
       console.warn("save could not be replayed, starting a new run", e);
     }
   }
+  // Первый запуск: сначала выбор водителя.
   const seed = seedFromUrl() ?? randomSeed();
-  return { content, state: newRun(seed, content), commands: [], ui: freshUi(), error: null };
+  const ui = freshUi();
+  ui.choosingDriver = true;
+  return { content, state: newRun(seed, content), commands: [], ui, error: null };
 }
 
-export function startNewRun(store: Store, seed: number = randomSeed()): void {
-  store.state = newRun(seed, store.content);
+export function startNewRun(store: Store, driverId: string = DEFAULT_DRIVER, seed: number = randomSeed()): void {
+  store.state = newRun(seed, store.content, { driverId });
   store.commands = [];
   store.ui = freshUi();
   store.error = null;
@@ -91,17 +99,18 @@ export function dispatch(store: Store, cmd: Command): boolean {
 
 function persist(store: Store): void {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ seed: store.state.seed, commands: store.commands }));
+    const save = { seed: store.state.seed, driverId: store.state.driver.id, commands: store.commands };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   } catch {
     // Хранилище недоступно (приватный режим) — играем без сохранения.
   }
 }
 
-function loadSave(): { seed: number; commands: Command[] } | null {
+function loadSave(): { seed: number; driverId?: string; commands: Command[] } | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    const data = JSON.parse(raw) as { seed: number; commands: Command[] };
+    const data = JSON.parse(raw) as { seed: number; driverId?: string; commands: Command[] };
     return typeof data.seed === "number" && Array.isArray(data.commands) ? data : null;
   } catch {
     return null;

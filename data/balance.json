@@ -167,5 +167,33 @@
     "maxTicks": 1200,
     "brokenEngineFuelMult": 1.5,
     "brokenWheelsFuelMult": 1.25
+  },
+  "nemesis": {
+    "template": "enemy_nemesis",
+    "meetColumns": [
+      3,
+      6
+    ],
+    "names": [
+      "nemesis.name.baron",
+      "nemesis.name.horn",
+      "nemesis.name.conductor",
+      "nemesis.name.bulldog",
+      "nemesis.name.redlight",
+      "nemesis.name.widow"
+    ],
+    "hullPerLevel": 3,
+    "bonusWeapons": [
+      [],
+      [
+        "wpn_harpoon"
+      ]
+    ],
+    "surrenderAtHull": 0.35,
+    "stealTokens": [
+      3,
+      6
+    ],
+    "finalTrophy": "wpn_rockets"
   }
 }

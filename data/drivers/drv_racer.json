@@ -1,0 +1,15 @@
+{
+  "id": "drv_racer",
+  "nameKey": "driver.drv_racer.name",
+  "descKey": "driver.drv_racer.desc",
+  "perks": [
+    {
+      "type": "escapeMult",
+      "value": 1.5
+    },
+    {
+      "type": "evasionBonus",
+      "value": 0.05
+    }
+  ]
+}

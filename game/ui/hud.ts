@@ -1,6 +1,6 @@
-import { capacity, isLeaking, RESOURCE_KINDS, tankMax } from "../../core";
+import { capacity, driverDef, isLeaking, RESOURCE_KINDS, tankMax } from "../../core";
 import type { Store } from "../store";
-import { bar, esc, RES, SYSTEM, uiAttr } from "./text";
+import { bar, esc, RES, SYSTEM, t, uiAttr } from "./text";
 
 export function renderHud(store: Store): string {
   const { state, content } = store;
@@ -25,7 +25,12 @@ export function renderHud(store: Store): string {
         ${sys("tank", state.tank.durability, state.tank.max, isLeaking(state) ? ' <b class="warn">течёт!</b>' : "")}
       </div>
       <div class="meta">
-        <span>Водитель: ${state.driver.status === "healthy" ? "здоров" : '<b class="warn">ранен</b>'}</span>
+        <span>Водитель: ${esc(t(content, driverDef(state, content)?.nameKey ?? state.driver.id))}, ${state.driver.status === "healthy" ? "здоров" : '<b class="warn">ранен</b>'}</span>
+        <span title="Заклятый соперник">⚔ ${esc(t(content, state.nemesis.nameKey))}: ${
+          state.nemesis.defeated
+            ? "повержен"
+            : `встреч ${state.nemesis.meetings}/${content.balance.nemesis.meetColumns.length}, ур. ${state.nemesis.level}`
+        }</span>
         <span>Пассажиры: ${state.passengers.length}/${capacity(state)}</span>
         <span>Перегонов: ${state.legs}</span>
         <span class="muted">seed ${state.seed}</span>

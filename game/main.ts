@@ -9,7 +9,7 @@ import { renderBus, renderGear } from "./ui/bus";
 import { renderCombat } from "./ui/combat";
 import { renderHud } from "./ui/hud";
 import { renderMap } from "./ui/map";
-import { renderPanel } from "./ui/panels";
+import { renderDriverPick, renderPanel } from "./ui/panels";
 import { ERRORS, esc } from "./ui/text";
 
 const app = document.getElementById("app")!;
@@ -17,6 +17,10 @@ const store: Store = createStore(loadBrowserContent());
 
 function render(): void {
   const { state } = store;
+  if (store.ui.choosingDriver) {
+    app.innerHTML = `${renderHud(store)}<main class="layout single"><div class="main-view">${renderDriverPick(store)}</div></main>`;
+    return;
+  }
   const inCombat = state.phase.type === "combat";
   const main = inCombat ? renderCombat(store) : renderMap(store);
   const error = store.error ? `<div class="error">${esc(ERRORS[store.error] ?? store.error)}</div>` : "";
@@ -50,8 +54,17 @@ function onUi(action: string, value: string): void {
   const state = store.state;
   switch (action) {
     case "newRun":
-      if (state.phase.type === "over" || confirm("Начать новый забег? Текущий будет потерян.")) startNewRun(store);
+      ui.choosingDriver = true;
       break;
+    case "cancelDriver":
+      ui.choosingDriver = false;
+      break;
+    case "pickDriver": {
+      const inProgress = state.phase.type !== "over" && store.commands.length > 0;
+      if (inProgress && !confirm("Начать новый забег? Текущий будет потерян.")) break;
+      startNewRun(store, value);
+      break;
+    }
     case "pickEdge": {
       const edge = state.map.edges.find((e) => e.id === value);
       if (!edge) break;
@@ -90,6 +103,7 @@ function onUi(action: string, value: string): void {
         if (post.role !== "weapon" || !post.slot) continue;
         const inst = state.equipment[post.slot];
         if (!inst || inst.durability <= 0 || state.passengers.some((p) => p.seat === post.id)) continue;
+        if (store.content.items[inst.itemId]?.kind !== "weapon") continue; // к бронелисту стрелок не нужен
         const idle = state.passengers.find(
           (p) => p.status === "healthy" && state.bus.seats.find((s) => s.id === p.seat)?.role === "plain",
         );

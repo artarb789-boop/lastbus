@@ -1,0 +1,18 @@
+{
+  "id": "drv_guard",
+  "nameKey": "driver.drv_guard.name",
+  "descKey": "driver.drv_guard.desc",
+  "perks": [
+    {
+      "type": "startEquipment",
+      "slot": "sideR1",
+      "item": "arm_plate_heavy"
+    },
+    {
+      "type": "startResources",
+      "delta": {
+        "ammo": 4
+      }
+    }
+  ]
+}

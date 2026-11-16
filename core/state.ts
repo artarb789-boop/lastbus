@@ -1,4 +1,4 @@
-import type { AiProfile, BusDef, RangeBand } from "./content";
+import type { AiProfile, BusDef, EnemyDef, RangeBand } from "./content";
 import type { RngState } from "./rng";
 
 // ---------- Ресурсы ----------
@@ -72,6 +72,8 @@ export interface Passenger {
 }
 
 export interface Driver {
+  /** id из data/drivers. */
+  id: string;
   status: HealthStatus;
 }
 
@@ -129,7 +131,17 @@ export type TargetRef = "hull" | "engine" | "wheels" | "cabin" | "tank" | `weapo
 
 export type Maneuver = "approach" | "hold" | "retreat";
 
-export type CombatSource = "encounter" | "ambush" | "intercept" | "boss";
+export type CombatSource = "encounter" | "ambush" | "intercept" | "boss" | "nemesis";
+
+export interface NemesisState {
+  /** Ключ текста с именем. */
+  nameKey: string;
+  /** Сколько встреч уже было. */
+  meetings: number;
+  /** Уровень: растёт после каждой встречи, которую он пережил. */
+  level: number;
+  defeated: boolean;
+}
 
 export interface StatusTimers {
   /** Сколько тиков ещё сцеплены гарпуном (нельзя оторваться и отдалиться). */
@@ -159,6 +171,10 @@ export interface PlayerWeaponState {
 
 export interface EnemyState {
   enemyId: string;
+  /** Копия описания врага на этот бой (заклятый соперник усиливается от встречи к встрече). */
+  def: EnemyDef;
+  /** Имя для показа: ключ текста или готовая строка (у заклятого соперника). */
+  name: string;
   hull: SystemHp;
   systems: { engine: SystemHp; wheels: SystemHp; cabin: SystemHp; tank: SystemHp };
   weapons: EnemyWeaponState[];
@@ -264,6 +280,7 @@ export interface RunState {
   resources: Resources;
   /** Узлы, к которым сейчас едет соперник (видны на карте). */
   contested: string[];
+  nemesis: NemesisState;
   phase: Phase;
   stats: RunStats;
   log: LogEntry[];

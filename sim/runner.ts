@@ -1,4 +1,4 @@
-import { applyCommand, newRun, type Command, type Content, type RunState } from "../core";
+import { applyCommand, newRun, type Command, type Content, type RunOptions, type RunState } from "../core";
 import type { BotFactory } from "./bots";
 
 export interface GameRecord {
@@ -12,8 +12,8 @@ const MAX_STEPS = 2000;
 const MAX_REJECTS_IN_ROW = 20;
 
 /** Прогон одного забега ботом. Отклонённые команды не попадают в список для воспроизведения. */
-export function runGame(seed: number, botFactory: BotFactory, content: Content): GameRecord {
-  const state = newRun(seed, content);
+export function runGame(seed: number, botFactory: BotFactory, content: Content, opts: RunOptions = {}): GameRecord {
+  const state = newRun(seed, content, opts);
   const bot = botFactory(seed);
   const commands: Command[] = [];
   let rejected = 0;

@@ -1,0 +1,50 @@
+{
+  "id": "ev_road_sagging_bridge",
+  "kind": "road",
+  "weight": 9,
+  "conditions": [
+    {
+      "type": "roadType",
+      "in": [
+        "bridge"
+      ]
+    }
+  ],
+  "textKey": "ev.sagging_bridge.text",
+  "choices": [
+    {
+      "textKey": "ev.sagging_bridge.planks",
+      "requires": {
+        "resources": {
+          "parts": 2
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "parts": -2
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.sagging_bridge.edge",
+      "check": {
+        "chance": 0.7
+      },
+      "success": [],
+      "fail": [
+        {
+          "type": "damageItems",
+          "count": 1,
+          "amount": 1
+        },
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

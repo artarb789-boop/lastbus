@@ -81,7 +81,8 @@
     "visibility",
     "stopEventChance",
     "tank",
-    "combat"
+    "combat",
+    "nemesis"
   ],
   "properties": {
     "startResources": {
@@ -485,6 +486,62 @@
         "gunnerRepairTicks": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "nemesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "template",
+        "meetColumns",
+        "names",
+        "hullPerLevel",
+        "bonusWeapons",
+        "surrenderAtHull",
+        "stealTokens",
+        "finalTrophy"
+      ],
+      "properties": {
+        "template": {
+          "$ref": "common#/definitions/id"
+        },
+        "meetColumns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "names": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common#/definitions/key"
+          }
+        },
+        "hullPerLevel": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bonusWeapons": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "common#/definitions/id"
+            }
+          }
+        },
+        "surrenderAtHull": {
+          "$ref": "common#/definitions/probability"
+        },
+        "stealTokens": {
+          "$ref": "common#/definitions/range"
+        },
+        "finalTrophy": {
+          "$ref": "common#/definitions/id"
         }
       }
     }

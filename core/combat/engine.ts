@@ -3,7 +3,7 @@
  * Ядро считает бой дискретными тиками; клиент вызывает advance по таймеру и останавливает его на паузе.
  * Всё детерминировано: случайность только из state.rng.
  */
-import type { Content, EnemyPhaseEffect, RangeBand, WeaponEffect } from "../content";
+import type { Content, EnemyDef, EnemyPhaseEffect, RangeBand, WeaponEffect } from "../content";
 import { harm, hurtDriver, occupant } from "../crew";
 import { coveredSeats, itemDef, working } from "../equipment";
 import { log } from "../log";
@@ -20,6 +20,7 @@ import type {
   SystemHp,
   TargetRef,
 } from "../state";
+import { driverEscapeMult, driverEvasionBonus } from "../driver";
 import { damageTank } from "../tank";
 import { BAND_CENTER, enemyIsFleeing, enemyManeuver, retargetEnemy } from "./ai";
 
@@ -40,12 +41,22 @@ function hp(max: number): SystemHp {
 
 // ---------- Начало боя ----------
 
-export function startCombat(state: RunState, content: Content, enemyId: string, source: CombatSource): CombatState {
-  const def = content.enemies[enemyId];
-  if (!def) throw new Error(`unknown enemy ${enemyId}`);
+/** Начать бой. Враг — id из data/enemies или готовое описание (например, усиленный заклятый соперник). */
+export function startCombat(
+  state: RunState,
+  content: Content,
+  enemy: string | EnemyDef,
+  source: CombatSource,
+  name?: string,
+): CombatState {
+  const def = typeof enemy === "string" ? content.enemies[enemy] : enemy;
+  if (!def) throw new Error(`unknown enemy ${String(enemy)}`);
+  const enemyId = def.id;
   const b = content.balance.combat;
-  const enemy: EnemyState = {
+  const enemyState: EnemyState = {
     enemyId,
+    def: structuredClone(def),
+    name: name ?? def.nameKey,
     hull: hp(def.hull),
     systems: { engine: hp(def.systems.engine), wheels: hp(def.systems.wheels), cabin: hp(def.systems.cabin), tank: hp(def.systems.tank) },
     weapons: def.weapons.map((itemId) => {
@@ -74,10 +85,10 @@ export function startCombat(state: RunState, content: Content, enemyId: string, 
     status: emptyStatus(),
     mechanicTimer: 0,
     medicTimer: 0,
-    enemy,
+    enemy: enemyState,
   };
   if (source === "ambush") {
-    for (const w of enemy.weapons) w.charge = Math.floor(content.items[w.itemId]!.weapon!.charge / 2);
+    for (const w of enemyState.weapons) w.charge = Math.floor(content.items[w.itemId]!.weapon!.charge / 2);
   }
   retargetEnemy(state, content, combat, true);
   state.stats.fights += 1;
@@ -104,12 +115,11 @@ export function playerEvasion(state: RunState, content: Content): number {
   if (state.systems.wheels.hp > 0) ev += e.wheels;
   if (seatHealthy(state, roleSeat(state, "navigator"))) ev += e.navigator;
   if (state.driver.status === "healthy" && state.systems.cabin.hp > 0) ev += e.driver;
-  return ev;
+  return ev + driverEvasionBonus(state, content);
 }
 
-export function enemyEvasion(content: Content, combat: CombatState): number {
-  const def = content.enemies[combat.enemy.enemyId]!;
-  return combat.enemy.systems.engine.hp > 0 ? def.evasion : 0;
+export function enemyEvasion(_content: Content, combat: CombatState): number {
+  return combat.enemy.systems.engine.hp > 0 ? combat.enemy.def.evasion : 0;
 }
 
 function playerSpeed(state: RunState, combat: CombatState): number {
@@ -119,10 +129,10 @@ function playerSpeed(state: RunState, combat: CombatState): number {
   return v;
 }
 
-function enemySpeed(content: Content, combat: CombatState): number {
+function enemySpeed(_content: Content, combat: CombatState): number {
   const e = combat.enemy;
   if (e.systems.engine.hp <= 0) return 0;
-  let v = content.enemies[e.enemyId]!.speed * (e.systems.wheels.hp > 0 ? 1 : 0.5);
+  let v = e.def.speed * (e.systems.wheels.hp > 0 ? 1 : 0.5);
   if (e.status.slowed > 0) v *= 0.5;
   return v;
 }
@@ -143,10 +153,10 @@ export function canEscape(combat: CombatState, content: Content): boolean {
 
 // ---------- Урон ----------
 
-function hitEnemy(content: Content, combat: CombatState, target: TargetRef, dmg: number, armored: boolean): void {
+function hitEnemy(_content: Content, combat: CombatState, target: TargetRef, dmg: number, armored: boolean): void {
   const e = combat.enemy;
   // Броня снижает урон, но попадание всегда наносит хотя бы 1.
-  const d = armored && dmg > 0 ? Math.max(1, dmg - content.enemies[e.enemyId]!.armor) : dmg;
+  const d = armored && dmg > 0 ? Math.max(1, dmg - e.def.armor) : dmg;
   if (d <= 0) return;
   e.hull.hp = Math.max(0, e.hull.hp - d);
   if (target === "engine" || target === "wheels" || target === "cabin" || target === "tank") {
@@ -174,8 +184,10 @@ function hitPlayer(state: RunState, content: Content, target: TargetRef, dmg: nu
     plates.sort((a, b2) => b2.def.armor!.rating - a.def.armor!.rating);
     const plate = plates[0];
     if (plate && d > 0) {
-      d = Math.max(1, d - plate.def.armor!.rating);
-      plate.inst.durability = Math.max(0, plate.inst.durability - 1);
+      const reduced = Math.max(1, d - plate.def.armor!.rating);
+      // Лист изнашивается, только если действительно погасил часть урона: мелкие пули его не тратят.
+      if (reduced < d) plate.inst.durability = Math.max(0, plate.inst.durability - 1);
+      d = reduced;
     }
   }
   if (d <= 0) return;
@@ -238,7 +250,7 @@ function applyPhase(state: RunState, content: Content, combat: CombatState, effe
 export function combatTick(state: RunState, content: Content, combat: CombatState): CombatResult | null {
   const b = content.balance.combat;
   const e = combat.enemy;
-  const def = content.enemies[e.enemyId]!;
+  const def = e.def;
   combat.tick += 1;
 
   // 1. Статусы и горение.
@@ -276,7 +288,9 @@ export function combatTick(state: RunState, content: Content, combat: CombatStat
   // 4. Отрыв: копится на средней и дальней дистанции, пока работает двигатель и нет сцепки.
   const escapeRate = band === "far" ? 1 : band === "mid" ? b.escapeMidRate : 0;
   if (escapeRate > 0 && !tethered) {
-    if (state.systems.engine.hp > 0) combat.escape = Math.min(b.escapeTicks, combat.escape + escapeRate);
+    if (state.systems.engine.hp > 0) {
+      combat.escape = Math.min(b.escapeTicks, combat.escape + escapeRate * driverEscapeMult(state, content));
+    }
     if (enemyIsFleeing(content, combat) && e.systems.engine.hp > 0) {
       e.escape += escapeRate;
       if (e.escape >= b.escapeTicks) return "enemy_fled";

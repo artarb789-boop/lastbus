@@ -1,0 +1,47 @@
+{
+  "id": "enemy_nemesis",
+  "nameKey": "enemy.enemy_nemesis.name",
+  "kind": "nemesis",
+  "tier": 1,
+  "weight": 1,
+  "hull": 10,
+  "systems": {
+    "engine": 4,
+    "wheels": 3,
+    "cabin": 3,
+    "tank": 3
+  },
+  "evasion": 0.15,
+  "speed": 1.1,
+  "armor": 1,
+  "weapons": [
+    "wpn_mg",
+    "wpn_shotgun"
+  ],
+  "ai": "gunner",
+  "preferredRange": "mid",
+  "loot": {
+    "resources": {
+      "tokens": [
+        5,
+        9
+      ],
+      "ammo": [
+        2,
+        4
+      ],
+      "parts": [
+        2,
+        4
+      ],
+      "fuel": [
+        6,
+        12
+      ]
+    },
+    "survivors": [
+      0,
+      1
+    ]
+  }
+}

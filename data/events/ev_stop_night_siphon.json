@@ -1,0 +1,35 @@
+{
+  "id": "ev_stop_night_siphon",
+  "kind": "stop",
+  "weight": 7,
+  "conditions": [
+    {
+      "type": "resourceAtLeast",
+      "resource": "fuel",
+      "value": 15
+    }
+  ],
+  "textKey": "ev.night_siphon.text",
+  "choices": [
+    {
+      "textKey": "ev.night_siphon.guard",
+      "effects": [
+        {
+          "type": "loseActions",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.night_siphon.ignore",
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": -8
+          }
+        }
+      ]
+    }
+  ]
+}

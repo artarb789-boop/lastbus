@@ -1,0 +1,70 @@
+{
+  "id": "ev_stop_fever",
+  "kind": "stop",
+  "weight": 6,
+  "conditions": [
+    {
+      "type": "minPassengers",
+      "value": 3
+    }
+  ],
+  "textKey": "ev.fever.text",
+  "choices": [
+    {
+      "textKey": "ev.fever.medkit",
+      "requires": {
+        "resources": {
+          "medkits": 1
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "medkits": -1
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.fever.herbs",
+      "requires": {
+        "resources": {
+          "food": 2
+        }
+      },
+      "check": {
+        "chance": 0.6
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": -2
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": -2
+          }
+        },
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.fever.nothing",
+      "effects": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

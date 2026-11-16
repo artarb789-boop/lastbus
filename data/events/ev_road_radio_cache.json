@@ -1,0 +1,43 @@
+{
+  "id": "ev_road_radio_cache",
+  "kind": "road",
+  "weight": 7,
+  "conditions": [],
+  "textKey": "ev.radio_cache.text",
+  "choices": [
+    {
+      "textKey": "ev.radio_cache.go",
+      "requires": {
+        "healthyPassengers": 1
+      },
+      "check": {
+        "chance": 0.5
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "ammo": 4,
+            "fuel": 6
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        },
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": -4
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.radio_cache.ignore",
+      "effects": []
+    }
+  ]
+}
