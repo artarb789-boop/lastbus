@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "shop",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "nameKey", "stock"],
+  "properties": {
+    "id": { "$ref": "common#/definitions/shopKind" },
+    "nameKey": { "$ref": "common#/definitions/key" },
+    "stock": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "resource", "amount", "price"],
+            "properties": {
+              "type": { "const": "resource" },
+              "resource": { "$ref": "common#/definitions/resourceKind" },
+              "amount": { "$ref": "common#/definitions/range" },
+              "price": { "type": "integer", "minimum": 0 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "itemKinds", "count", "priceMult"],
+            "properties": {
+              "type": { "const": "item" },
+              "itemKinds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "common#/definitions/itemKind" } },
+              "count": { "$ref": "common#/definitions/range" },
+              "priceMult": { "type": "number", "exclusiveMinimum": 0 }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

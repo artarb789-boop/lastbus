@@ -1,0 +1,29 @@
+{
+  "id": "wpn_mg",
+  "nameKey": "item.wpn_mg.name",
+  "descKey": "item.wpn_mg.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "roof"
+  ],
+  "durability": 3,
+  "price": 8,
+  "installCost": {
+    "parts": 2
+  },
+  "tags": [
+    "ranged",
+    "gun"
+  ],
+  "weapon": {
+    "ranges": [
+      "mid",
+      "far"
+    ],
+    "charge": 16,
+    "shots": 3,
+    "damage": 1,
+    "ammoPerVolley": 0,
+    "accuracy": 0.75
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "ev_special_trader",
+  "kind": "special",
+  "weight": 10,
+  "conditions": [],
+  "textKey": "ev.trader.text",
+  "choices": [
+    {
+      "textKey": "ev.trader.buy_weapon",
+      "requires": {
+        "resources": {
+          "tokens": 5
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -5
+          }
+        },
+        {
+          "type": "gainItem",
+          "itemKinds": [
+            "weapon"
+          ]
+        }
+      ]
+    },
+    {
+      "textKey": "ev.trader.sell_ammo",
+      "requires": {
+        "resources": {
+          "ammo": 4
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "ammo": -4,
+            "tokens": 4
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.trader.leave",
+      "effects": []
+    }
+  ]
+}

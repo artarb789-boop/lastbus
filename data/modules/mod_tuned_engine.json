@@ -1,0 +1,23 @@
+{
+  "id": "mod_tuned_engine",
+  "nameKey": "item.mod_tuned_engine.name",
+  "descKey": "item.mod_tuned_engine.desc",
+  "kind": "internal",
+  "slotKinds": [
+    "internal"
+  ],
+  "durability": 4,
+  "price": 9,
+  "installCost": {
+    "parts": 3
+  },
+  "tags": [
+    "engine"
+  ],
+  "passive": [
+    {
+      "type": "fuelMult",
+      "value": 0.85
+    }
+  ]
+}

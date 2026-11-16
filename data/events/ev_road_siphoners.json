@@ -1,0 +1,60 @@
+{
+  "id": "ev_road_siphoners",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [
+    {
+      "type": "resourceAtLeast",
+      "resource": "fuel",
+      "value": 10
+    }
+  ],
+  "textKey": "ev.siphoners.text",
+  "choices": [
+    {
+      "textKey": "ev.siphoners.chase",
+      "requires": {
+        "itemTag": "ranged",
+        "resources": {
+          "ammo": 1
+        }
+      },
+      "check": {
+        "chance": 0.55
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "ammo": -1,
+            "tokens": 3
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "resource",
+          "delta": {
+            "ammo": -1,
+            "fuel": -6
+          }
+        },
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.siphoners.let_go",
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": -8
+          }
+        }
+      ]
+    }
+  ]
+}

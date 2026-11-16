@@ -1,0 +1,354 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "weight",
+    "conditions",
+    "textKey",
+    "choices"
+  ],
+  "definitions": {
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "in"
+          ],
+          "properties": {
+            "type": {
+              "const": "roadType"
+            },
+            "in": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "common#/definitions/roadType"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "in"
+          ],
+          "properties": {
+            "type": {
+              "const": "nodeKind"
+            },
+            "in": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "common#/definitions/nodeKind"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "minPassengers"
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "resource",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "resourceAtLeast"
+            },
+            "resource": {
+              "$ref": "common#/definitions/resourceKind"
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "tag"
+          ],
+          "properties": {
+            "type": {
+              "const": "hasItemTag"
+            },
+            "tag": {
+              "$ref": "common#/definitions/id"
+            }
+          }
+        }
+      ]
+    },
+    "effect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "delta"
+          ],
+          "properties": {
+            "type": {
+              "const": "resource"
+            },
+            "delta": {
+              "$ref": "common#/definitions/resources"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "count"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "woundPassengers",
+                "healWounded",
+                "addPassengers",
+                "loseActions"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "count",
+            "amount"
+          ],
+          "properties": {
+            "type": {
+              "const": "damageItems"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "amount": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "gainItem"
+            },
+            "itemId": {
+              "$ref": "common#/definitions/id"
+            },
+            "itemKinds": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "common#/definitions/itemKind"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "amount"
+          ],
+          "properties": {
+            "type": {
+              "const": "damageTank"
+            },
+            "amount": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "repairTank"
+            }
+          }
+        }
+      ]
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/effect"
+      }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "textKey"
+      ],
+      "properties": {
+        "textKey": {
+          "$ref": "common#/definitions/key"
+        },
+        "requires": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "healthyPassengers": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resources": {
+              "$ref": "common#/definitions/resources"
+            },
+            "itemTag": {
+              "$ref": "common#/definitions/id"
+            }
+          }
+        },
+        "effects": {
+          "$ref": "#/definitions/effects"
+        },
+        "check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "chance"
+          ],
+          "properties": {
+            "chance": {
+              "$ref": "common#/definitions/probability"
+            }
+          }
+        },
+        "success": {
+          "$ref": "#/definitions/effects"
+        },
+        "fail": {
+          "$ref": "#/definitions/effects"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "effects"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "check"
+                ]
+              },
+              {
+                "required": [
+                  "success"
+                ]
+              },
+              {
+                "required": [
+                  "fail"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "check",
+            "success",
+            "fail"
+          ],
+          "not": {
+            "required": [
+              "effects"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "id": {
+      "$ref": "common#/definitions/id"
+    },
+    "kind": {
+      "enum": [
+        "road",
+        "stop",
+        "special"
+      ]
+    },
+    "weight": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/condition"
+      }
+    },
+    "textKey": {
+      "$ref": "common#/definitions/key"
+    },
+    "choices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/choice"
+      }
+    }
+  }
+}

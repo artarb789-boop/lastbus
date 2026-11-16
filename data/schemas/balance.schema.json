@@ -1,0 +1,492 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "balance",
+  "type": "object",
+  "additionalProperties": false,
+  "definitions": {
+    "weightMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "perStop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "village",
+        "garage",
+        "junkyard",
+        "checkpoint",
+        "special"
+      ],
+      "properties": {
+        "village": {},
+        "garage": {},
+        "junkyard": {},
+        "checkpoint": {},
+        "special": {}
+      }
+    },
+    "road": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fuel",
+        "weight",
+        "wearChance"
+      ],
+      "properties": {
+        "fuel": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "wearChance": {
+          "$ref": "common#/definitions/probability"
+        }
+      }
+    }
+  },
+  "required": [
+    "startResources",
+    "tankBase",
+    "stopActions",
+    "foodEveryLegs",
+    "startPassengers",
+    "ticketMin",
+    "ticketMax",
+    "farePerStop",
+    "lookVariants",
+    "region",
+    "roads",
+    "nodeWeights",
+    "boarding",
+    "shopChance",
+    "shopWeights",
+    "checkpointToll",
+    "scavengeTables",
+    "scavengeRisk",
+    "roadEventChance",
+    "rivalChance",
+    "rushFuelMult",
+    "contestedActions",
+    "repairDurabilityPerPart",
+    "garagePartsMult",
+    "sellMult",
+    "visibility",
+    "stopEventChance",
+    "tank",
+    "combat"
+  ],
+  "properties": {
+    "startResources": {
+      "allOf": [
+        {
+          "$ref": "common#/definitions/resources"
+        },
+        {
+          "required": [
+            "fuel",
+            "food",
+            "parts",
+            "ammo",
+            "medkits",
+            "tokens"
+          ]
+        }
+      ]
+    },
+    "tankBase": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stopActions": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "foodEveryLegs": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "startPassengers": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ticketMin": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ticketMax": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "farePerStop": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lookVariants": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "columns",
+        "minPerColumn",
+        "maxPerColumn",
+        "branchChance"
+      ],
+      "properties": {
+        "columns": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "minPerColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxPerColumn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "branchChance": {
+          "$ref": "common#/definitions/probability"
+        }
+      }
+    },
+    "roads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "highway",
+        "dirt",
+        "bridge",
+        "detour"
+      ],
+      "properties": {
+        "highway": {
+          "$ref": "#/definitions/road"
+        },
+        "dirt": {
+          "$ref": "#/definitions/road"
+        },
+        "bridge": {
+          "$ref": "#/definitions/road"
+        },
+        "detour": {
+          "$ref": "#/definitions/road"
+        }
+      }
+    },
+    "nodeWeights": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "village": {
+          "type": "number",
+          "minimum": 0
+        },
+        "garage": {
+          "type": "number",
+          "minimum": 0
+        },
+        "junkyard": {
+          "type": "number",
+          "minimum": 0
+        },
+        "checkpoint": {
+          "type": "number",
+          "minimum": 0
+        },
+        "special": {
+          "type": "number",
+          "minimum": 0
+        },
+        "encounter": {
+          "type": "number",
+          "minimum": 0
+        },
+        "incident": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "boarding": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/perStop"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "common#/definitions/range"
+          }
+        }
+      ]
+    },
+    "shopChance": {
+      "$ref": "common#/definitions/probability"
+    },
+    "shopWeights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kiosk",
+        "gunsmith",
+        "mechanic",
+        "pharmacy",
+        "fleamarket"
+      ],
+      "properties": {
+        "kiosk": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gunsmith": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mechanic": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pharmacy": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fleamarket": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "checkpointToll": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scavengeTables": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/perStop"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/definitions/weightMap"
+          }
+        }
+      ]
+    },
+    "scavengeRisk": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/perStop"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "common#/definitions/probability"
+          }
+        }
+      ]
+    },
+    "roadEventChance": {
+      "$ref": "common#/definitions/probability"
+    },
+    "rivalChance": {
+      "$ref": "common#/definitions/probability"
+    },
+    "rushFuelMult": {
+      "type": "number",
+      "minimum": 1
+    },
+    "contestedActions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repairDurabilityPerPart": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "garagePartsMult": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sellMult": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "navigatorBonus"
+      ],
+      "properties": {
+        "base": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "navigatorBonus": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "stopEventChance": {
+      "$ref": "common#/definitions/probability"
+    },
+    "tank": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hitChance",
+        "hitChanceOnLoss",
+        "hitDamage",
+        "punctureLoss",
+        "leakPerLeg"
+      ],
+      "properties": {
+        "hitChance": {
+          "$ref": "common#/definitions/probability"
+        },
+        "hitChanceOnLoss": {
+          "$ref": "common#/definitions/probability"
+        },
+        "hitDamage": {
+          "$ref": "common#/definitions/range"
+        },
+        "punctureLoss": {
+          "$ref": "common#/definitions/range"
+        },
+        "leakPerLeg": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "combat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tickSeconds",
+        "startDistance",
+        "distanceStep",
+        "escapeTicks",
+        "evasion",
+        "crewWoundChance",
+        "driverWoundChance",
+        "mechanicRepairTicks",
+        "medicHealTicks",
+        "burnEvery",
+        "ambushChance",
+        "maxTicks",
+        "brokenEngineFuelMult",
+        "brokenWheelsFuelMult",
+        "escapeMidRate",
+        "enemyAccuracyMult",
+        "gunnerRepairTicks"
+      ],
+      "properties": {
+        "tickSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "startDistance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "distanceStep": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "escapeTicks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evasion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base",
+            "engine",
+            "wheels",
+            "navigator",
+            "driver"
+          ],
+          "properties": {
+            "base": {
+              "$ref": "common#/definitions/probability"
+            },
+            "engine": {
+              "$ref": "common#/definitions/probability"
+            },
+            "wheels": {
+              "$ref": "common#/definitions/probability"
+            },
+            "navigator": {
+              "$ref": "common#/definitions/probability"
+            },
+            "driver": {
+              "$ref": "common#/definitions/probability"
+            }
+          }
+        },
+        "crewWoundChance": {
+          "$ref": "common#/definitions/probability"
+        },
+        "driverWoundChance": {
+          "$ref": "common#/definitions/probability"
+        },
+        "mechanicRepairTicks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "medicHealTicks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "burnEvery": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ambushChance": {
+          "$ref": "common#/definitions/probability"
+        },
+        "maxTicks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "brokenEngineFuelMult": {
+          "type": "number",
+          "minimum": 1
+        },
+        "brokenWheelsFuelMult": {
+          "type": "number",
+          "minimum": 1
+        },
+        "escapeMidRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "enemyAccuracyMult": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "gunnerRepairTicks": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

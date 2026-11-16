@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateRegion, outgoingEdges } from "../core/map/generate";
 import { createRng } from "../core/rng";
+import { content } from "./helpers";
 import type { RegionMap } from "../core/state";
 
 function reachable(map: RegionMap): Set<string> {
@@ -19,10 +20,10 @@ function reachable(map: RegionMap): Set<string> {
 }
 
 describe("генерация региона", () => {
-  const maps = Array.from({ length: 300 }, (_, seed) => generateRegion(createRng(seed)));
+  const maps = Array.from({ length: 300 }, (_, seed) => generateRegion(createRng(seed), content.balance));
 
   it("одинаковый seed — одинаковая карта", () => {
-    expect(generateRegion(createRng(5))).toEqual(generateRegion(createRng(5)));
+    expect(generateRegion(createRng(5), content.balance)).toEqual(generateRegion(createRng(5), content.balance));
   });
 
   it("все узлы достижимы со старта", () => {

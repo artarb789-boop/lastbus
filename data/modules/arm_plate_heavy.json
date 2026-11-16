@@ -1,0 +1,20 @@
+{
+  "id": "arm_plate_heavy",
+  "nameKey": "item.arm_plate_heavy.name",
+  "descKey": "item.arm_plate_heavy.desc",
+  "kind": "armor",
+  "slotKinds": [
+    "side"
+  ],
+  "durability": 6,
+  "price": 8,
+  "installCost": {
+    "parts": 2
+  },
+  "tags": [
+    "armor"
+  ],
+  "armor": {
+    "rating": 2
+  }
+}

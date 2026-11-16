@@ -1,0 +1,48 @@
+{
+  "id": "enemy_rival_carrier",
+  "nameKey": "enemy.enemy_rival_carrier.name",
+  "kind": "rival",
+  "tier": 1,
+  "weight": 20,
+  "hull": 10,
+  "systems": {
+    "engine": 4,
+    "wheels": 3,
+    "cabin": 3,
+    "tank": 3
+  },
+  "evasion": 0.1,
+  "speed": 0.9,
+  "armor": 1,
+  "weapons": [
+    "wpn_mg",
+    "wpn_harpoon"
+  ],
+  "ai": "gunner",
+  "preferredRange": "mid",
+  "loot": {
+    "resources": {
+      "tokens": [
+        4,
+        8
+      ],
+      "ammo": [
+        2,
+        4
+      ],
+      "parts": [
+        2,
+        3
+      ],
+      "fuel": [
+        5,
+        10
+      ]
+    },
+    "survivors": [
+      1,
+      2
+    ]
+  },
+  "surrenderAtHull": 0.3
+}

@@ -1,0 +1,20 @@
+{
+  "id": "arm_plate_light",
+  "nameKey": "item.arm_plate_light.name",
+  "descKey": "item.arm_plate_light.desc",
+  "kind": "armor",
+  "slotKinds": [
+    "side"
+  ],
+  "durability": 3,
+  "price": 4,
+  "installCost": {
+    "parts": 1
+  },
+  "tags": [
+    "armor"
+  ],
+  "armor": {
+    "rating": 1
+  }
+}

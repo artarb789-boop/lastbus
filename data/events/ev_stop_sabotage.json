@@ -1,0 +1,45 @@
+{
+  "id": "ev_stop_sabotage",
+  "kind": "stop",
+  "weight": 6,
+  "conditions": [],
+  "textKey": "ev.sabotage.text",
+  "choices": [
+    {
+      "textKey": "ev.sabotage.hunt",
+      "requires": {
+        "healthyPassengers": 2
+      },
+      "check": {
+        "chance": 0.5
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": 4
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "damageTank",
+          "amount": 2
+        },
+        {
+          "type": "loseActions",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.sabotage.leave_fast",
+      "effects": [
+        {
+          "type": "damageTank",
+          "amount": 1
+        }
+      ]
+    }
+  ]
+}

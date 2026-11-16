@@ -1,0 +1,23 @@
+{
+  "id": "mod_medbay",
+  "nameKey": "item.mod_medbay.name",
+  "descKey": "item.mod_medbay.desc",
+  "kind": "internal",
+  "slotKinds": [
+    "internal"
+  ],
+  "durability": 3,
+  "price": 6,
+  "installCost": {
+    "parts": 2
+  },
+  "tags": [
+    "medical"
+  ],
+  "passive": [
+    {
+      "type": "healCapacity",
+      "value": 1
+    }
+  ]
+}

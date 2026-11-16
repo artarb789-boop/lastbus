@@ -1,0 +1,36 @@
+{
+  "id": "ev_road_fuel_cache",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.fuel_cache.text",
+  "choices": [
+    {
+      "textKey": "ev.fuel_cache.siphon",
+      "requires": {
+        "healthyPassengers": 1
+      },
+      "check": {
+        "chance": 0.6
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": 12
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.fuel_cache.ignore",
+      "effects": []
+    }
+  ]
+}

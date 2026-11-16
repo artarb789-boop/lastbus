@@ -1,0 +1,28 @@
+{
+  "id": "wpn_spikes",
+  "nameKey": "item.wpn_spikes.name",
+  "descKey": "item.wpn_spikes.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "front"
+  ],
+  "durability": 3,
+  "price": 4,
+  "installCost": {
+    "parts": 1
+  },
+  "tags": [
+    "ram",
+    "melee"
+  ],
+  "weapon": {
+    "ranges": [
+      "contact"
+    ],
+    "charge": 12,
+    "shots": 1,
+    "damage": 2,
+    "ammoPerVolley": 0,
+    "accuracy": 0.9
+  }
+}

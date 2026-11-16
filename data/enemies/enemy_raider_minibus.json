@@ -1,0 +1,47 @@
+{
+  "id": "enemy_raider_minibus",
+  "nameKey": "enemy.enemy_raider_minibus.name",
+  "kind": "raider",
+  "tier": 1,
+  "weight": 40,
+  "hull": 6,
+  "systems": {
+    "engine": 3,
+    "wheels": 2,
+    "cabin": 2,
+    "tank": 2
+  },
+  "evasion": 0.15,
+  "speed": 1.0,
+  "armor": 0,
+  "weapons": [
+    "wpn_mg"
+  ],
+  "ai": "gunner",
+  "preferredRange": "mid",
+  "loot": {
+    "resources": {
+      "tokens": [
+        2,
+        4
+      ],
+      "ammo": [
+        2,
+        4
+      ],
+      "parts": [
+        1,
+        2
+      ],
+      "fuel": [
+        3,
+        8
+      ]
+    },
+    "survivors": [
+      0,
+      1
+    ]
+  },
+  "fleeAtHull": 0.3
+}

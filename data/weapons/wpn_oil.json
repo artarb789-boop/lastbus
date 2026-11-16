@@ -1,0 +1,34 @@
+{
+  "id": "wpn_oil",
+  "nameKey": "item.wpn_oil.name",
+  "descKey": "item.wpn_oil.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "rear"
+  ],
+  "durability": 2,
+  "price": 4,
+  "installCost": {
+    "parts": 1
+  },
+  "tags": [
+    "trap"
+  ],
+  "weapon": {
+    "ranges": [
+      "near",
+      "mid"
+    ],
+    "charge": 30,
+    "shots": 1,
+    "damage": 0,
+    "ammoPerVolley": 1,
+    "accuracy": 0.85,
+    "effects": [
+      {
+        "type": "slow",
+        "ticks": 40
+      }
+    ]
+  }
+}

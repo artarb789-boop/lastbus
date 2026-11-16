@@ -1,0 +1,39 @@
+{
+  "id": "ev_road_refugees",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.refugees.text",
+  "choices": [
+    {
+      "textKey": "ev.refugees.take",
+      "effects": [
+        {
+          "type": "addPassengers",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "textKey": "ev.refugees.share_food",
+      "requires": {
+        "resources": {
+          "food": 2
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": -2,
+            "medkits": 1
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.refugees.pass",
+      "effects": []
+    }
+  ]
+}

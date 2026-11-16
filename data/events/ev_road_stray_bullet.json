@@ -1,0 +1,34 @@
+{
+  "id": "ev_road_stray_bullet",
+  "kind": "road",
+  "weight": 7,
+  "conditions": [],
+  "textKey": "ev.stray_bullet.text",
+  "choices": [
+    {
+      "textKey": "ev.stray_bullet.patch",
+      "requires": {
+        "resources": {
+          "parts": 2
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "parts": -2
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.stray_bullet.ignore",
+      "effects": [
+        {
+          "type": "damageTank",
+          "amount": 2
+        }
+      ]
+    }
+  ]
+}

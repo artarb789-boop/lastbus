@@ -1,0 +1,33 @@
+{
+  "id": "ev_special_chapel",
+  "kind": "special",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.chapel.text",
+  "choices": [
+    {
+      "textKey": "ev.chapel.offer",
+      "requires": {
+        "resources": {
+          "food": 2
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": -2
+          }
+        },
+        {
+          "type": "healWounded",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "textKey": "ev.chapel.leave",
+      "effects": []
+    }
+  ]
+}

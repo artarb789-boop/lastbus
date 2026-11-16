@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "common",
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.]*$"
+    },
+    "resourceKind": {
+      "enum": [
+        "fuel",
+        "food",
+        "parts",
+        "ammo",
+        "medkits",
+        "tokens"
+      ]
+    },
+    "stopKind": {
+      "enum": [
+        "village",
+        "garage",
+        "junkyard",
+        "checkpoint",
+        "special"
+      ]
+    },
+    "nodeKind": {
+      "enum": [
+        "village",
+        "garage",
+        "junkyard",
+        "checkpoint",
+        "special",
+        "encounter",
+        "incident",
+        "start",
+        "boss"
+      ]
+    },
+    "roadType": {
+      "enum": [
+        "highway",
+        "dirt",
+        "bridge",
+        "detour"
+      ]
+    },
+    "shopKind": {
+      "enum": [
+        "kiosk",
+        "gunsmith",
+        "mechanic",
+        "pharmacy",
+        "fleamarket"
+      ]
+    },
+    "slotKind": {
+      "enum": [
+        "front",
+        "side",
+        "roof",
+        "rear",
+        "internal"
+      ]
+    },
+    "itemKind": {
+      "enum": [
+        "weapon",
+        "armor",
+        "internal",
+        "utility"
+      ]
+    },
+    "range": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fuel": {
+          "type": "integer"
+        },
+        "food": {
+          "type": "integer"
+        },
+        "parts": {
+          "type": "integer"
+        },
+        "ammo": {
+          "type": "integer"
+        },
+        "medkits": {
+          "type": "integer"
+        },
+        "tokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "rangeBand": {
+      "enum": [
+        "contact",
+        "near",
+        "mid",
+        "far"
+      ]
+    },
+    "aiProfile": {
+      "enum": [
+        "gunner",
+        "berserk",
+        "rammer",
+        "tank_hunter",
+        "sniper"
+      ]
+    }
+  }
+}

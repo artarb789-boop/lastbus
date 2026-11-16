@@ -1,0 +1,54 @@
+{
+  "id": "ev_special_fuel_depot",
+  "kind": "special",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.fuel_depot.text",
+  "choices": [
+    {
+      "textKey": "ev.fuel_depot.siphon",
+      "requires": {
+        "healthyPassengers": 2
+      },
+      "check": {
+        "chance": 0.6
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": 25
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "woundPassengers",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "textKey": "ev.fuel_depot.salvage",
+      "effects": [
+        {
+          "type": "gainItem",
+          "itemKinds": [
+            "weapon",
+            "armor",
+            "internal",
+            "utility"
+          ]
+        },
+        {
+          "type": "loseActions",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.fuel_depot.leave",
+      "effects": []
+    }
+  ]
+}

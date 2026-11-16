@@ -1,0 +1,35 @@
+{
+  "id": "wpn_harpoon",
+  "nameKey": "item.wpn_harpoon.name",
+  "descKey": "item.wpn_harpoon.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "side"
+  ],
+  "durability": 3,
+  "price": 6,
+  "installCost": {
+    "parts": 2
+  },
+  "tags": [
+    "ranged",
+    "harpoon"
+  ],
+  "weapon": {
+    "ranges": [
+      "near",
+      "mid"
+    ],
+    "charge": 24,
+    "shots": 1,
+    "damage": 1,
+    "ammoPerVolley": 0,
+    "accuracy": 0.8,
+    "effects": [
+      {
+        "type": "tether",
+        "ticks": 30
+      }
+    ]
+  }
+}

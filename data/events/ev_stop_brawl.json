@@ -1,0 +1,43 @@
+{
+  "id": "ev_stop_brawl",
+  "kind": "stop",
+  "weight": 7,
+  "conditions": [
+    {
+      "type": "minPassengers",
+      "value": 2
+    }
+  ],
+  "textKey": "ev.brawl.text",
+  "choices": [
+    {
+      "textKey": "ev.brawl.pay",
+      "requires": {
+        "resources": {
+          "tokens": 3
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -3
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.brawl.fight",
+      "effects": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        },
+        {
+          "type": "loseActions",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

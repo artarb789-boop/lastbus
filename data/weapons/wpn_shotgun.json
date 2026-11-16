@@ -1,0 +1,29 @@
+{
+  "id": "wpn_shotgun",
+  "nameKey": "item.wpn_shotgun.name",
+  "descKey": "item.wpn_shotgun.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "side"
+  ],
+  "durability": 2,
+  "price": 5,
+  "installCost": {
+    "parts": 1
+  },
+  "tags": [
+    "ranged",
+    "gun"
+  ],
+  "weapon": {
+    "ranges": [
+      "contact",
+      "near"
+    ],
+    "charge": 14,
+    "shots": 1,
+    "damage": 3,
+    "ammoPerVolley": 0,
+    "accuracy": 0.85
+  }
+}

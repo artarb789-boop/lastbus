@@ -1,0 +1,56 @@
+{
+  "id": "ev_road_wreck",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.wreck.text",
+  "choices": [
+    {
+      "textKey": "ev.wreck.salvage",
+      "requires": {
+        "healthyPassengers": 2
+      },
+      "check": {
+        "chance": 0.5
+      },
+      "success": [
+        {
+          "type": "gainItem",
+          "itemKinds": [
+            "weapon",
+            "armor",
+            "internal",
+            "utility"
+          ]
+        }
+      ],
+      "fail": [
+        {
+          "type": "resource",
+          "delta": {
+            "parts": 2
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.wreck.survivors",
+      "effects": [
+        {
+          "type": "addPassengers",
+          "count": 3
+        },
+        {
+          "type": "resource",
+          "delta": {
+            "food": -2
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.wreck.leave",
+      "effects": []
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "id": "ev_road_gas_station",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.gas_station.text",
+  "choices": [
+    {
+      "textKey": "ev.gas_station.pump",
+      "requires": {
+        "healthyPassengers": 1
+      },
+      "check": {
+        "chance": 0.65
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": 14
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "damageTank",
+          "amount": 1
+        },
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.gas_station.drive_on",
+      "effects": []
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "mechanic",
+  "nameKey": "shop.mechanic.name",
+  "stock": [
+    {
+      "type": "resource",
+      "resource": "parts",
+      "amount": [
+        3,
+        5
+      ],
+      "price": 4
+    },
+    {
+      "type": "resource",
+      "resource": "fuel",
+      "amount": [
+        8,
+        12
+      ],
+      "price": 3
+    },
+    {
+      "type": "item",
+      "itemKinds": [
+        "armor",
+        "internal",
+        "utility"
+      ],
+      "count": [
+        1,
+        2
+      ],
+      "priceMult": 1.0
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "enemy_raider_sawnoff",
+  "nameKey": "enemy.enemy_raider_sawnoff.name",
+  "kind": "raider",
+  "tier": 1,
+  "weight": 25,
+  "hull": 7,
+  "systems": {
+    "engine": 3,
+    "wheels": 2,
+    "cabin": 2,
+    "tank": 2
+  },
+  "evasion": 0.1,
+  "speed": 1.1,
+  "armor": 0,
+  "weapons": [
+    "wpn_shotgun",
+    "wpn_shotgun"
+  ],
+  "ai": "berserk",
+  "preferredRange": "near",
+  "loot": {
+    "resources": {
+      "tokens": [
+        2,
+        5
+      ],
+      "ammo": [
+        3,
+        5
+      ],
+      "food": [
+        1,
+        3
+      ]
+    },
+    "survivors": [
+      0,
+      2
+    ]
+  },
+  "fleeAtHull": 0.25
+}

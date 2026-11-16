@@ -1,22 +1,11 @@
+import type { Balance } from "../content";
 import { chance, int, next, weighted, type RngState } from "../rng";
-import type { MapEdge, MapNode, RegionMap } from "../state";
-import { MIDDLE_NODE_WEIGHTS, ROAD_WEIGHTS, SHOP_CHANCE, SHOP_WEIGHTS } from "../stubs";
+import type { MapEdge, MapNode, NodeKind, RegionMap, RoadType, ShopKind } from "../state";
 
-export interface RegionOptions {
-  /** Всего столбцов, включая старт и босса. */
-  columns: number;
-  minPerColumn: number;
-  maxPerColumn: number;
-  /** Шанс развилки на каждом шаге «лесенки» между столбцами. */
-  branchChance: number;
+/** Таблица весов из баланса → список для weighted(). Порядок ключей фиксирован JSON-файлом. */
+function table<K extends string>(weights: Partial<Record<K, number>>): { item: K; weight: number }[] {
+  return (Object.entries(weights) as [K, number][]).filter(([, w]) => w > 0).map(([item, weight]) => ({ item, weight }));
 }
-
-export const DEFAULT_REGION: RegionOptions = {
-  columns: 9,
-  minPerColumn: 2,
-  maxPerColumn: 4,
-  branchChance: 0.5,
-};
 
 /**
  * Карта-граф региона: перегоны идут только вперёд, в соседний столбец.
@@ -27,7 +16,11 @@ export const DEFAULT_REGION: RegionOptions = {
  * Пары монотонны по обеим координатам, поэтому перегоны не пересекаются,
  * а у каждого узла есть хотя бы один входящий и один исходящий перегон.
  */
-export function generateRegion(rng: RngState, opts: RegionOptions = DEFAULT_REGION): RegionMap {
+export function generateRegion(rng: RngState, balance: Balance): RegionMap {
+  const opts = balance.region;
+  const nodeWeights = table<NodeKind>(balance.nodeWeights);
+  const roadWeights = table<RoadType>(Object.fromEntries(Object.entries(balance.roads).map(([k, r]) => [k, r.weight])));
+  const shopWeights = table<ShopKind>(balance.shopWeights);
   const columns: MapNode[][] = [];
   const last = opts.columns - 1;
 
@@ -40,7 +33,7 @@ export function generateRegion(rng: RngState, opts: RegionOptions = DEFAULT_REGI
       const count = int(rng, opts.minPerColumn, opts.maxPerColumn);
       const col: MapNode[] = [];
       for (let r = 0; r < count; r++) {
-        col.push({ id: `n${c}_${r}`, column: c, row: r, kind: weighted(rng, MIDDLE_NODE_WEIGHTS) });
+        col.push({ id: `n${c}_${r}`, column: c, row: r, kind: weighted(rng, nodeWeights) });
       }
       columns.push(col);
     }
@@ -57,8 +50,8 @@ export function generateRegion(rng: RngState, opts: RegionOptions = DEFAULT_REGI
         id: `e_${from.id}_${to.id}`,
         from: from.id,
         to: to.id,
-        road: weighted(rng, ROAD_WEIGHTS),
-        shop: chance(rng, SHOP_CHANCE) ? weighted(rng, SHOP_WEIGHTS) : null,
+        road: weighted(rng, roadWeights),
+        shop: chance(rng, balance.shopChance) ? weighted(rng, shopWeights) : null,
       });
     }
   }

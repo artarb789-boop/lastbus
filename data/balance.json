@@ -1,0 +1,171 @@
+{
+  "startResources": {
+    "fuel": 60,
+    "food": 8,
+    "parts": 4,
+    "ammo": 10,
+    "medkits": 2,
+    "tokens": 6
+  },
+  "tankBase": 80,
+  "stopActions": 2,
+  "foodEveryLegs": 2,
+  "startPassengers": 3,
+  "ticketMin": 1,
+  "ticketMax": 5,
+  "farePerStop": 1,
+  "lookVariants": 64,
+  "region": {
+    "columns": 9,
+    "minPerColumn": 2,
+    "maxPerColumn": 4,
+    "branchChance": 0.5
+  },
+  "roads": {
+    "highway": {
+      "fuel": 7,
+      "weight": 35,
+      "wearChance": 0.05
+    },
+    "dirt": {
+      "fuel": 10,
+      "weight": 35,
+      "wearChance": 0.3
+    },
+    "bridge": {
+      "fuel": 8,
+      "weight": 10,
+      "wearChance": 0.1
+    },
+    "detour": {
+      "fuel": 13,
+      "weight": 20,
+      "wearChance": 0.05
+    }
+  },
+  "nodeWeights": {
+    "village": 30,
+    "garage": 10,
+    "junkyard": 12,
+    "checkpoint": 10,
+    "special": 8,
+    "encounter": 25,
+    "incident": 10
+  },
+  "boarding": {
+    "village": [
+      1,
+      3
+    ],
+    "garage": [
+      0,
+      1
+    ],
+    "junkyard": [
+      0,
+      1
+    ],
+    "checkpoint": [
+      0,
+      2
+    ],
+    "special": [
+      0,
+      2
+    ]
+  },
+  "shopChance": 0.3333,
+  "shopWeights": {
+    "kiosk": 35,
+    "gunsmith": 15,
+    "mechanic": 20,
+    "pharmacy": 15,
+    "fleamarket": 15
+  },
+  "checkpointToll": 2,
+  "scavengeTables": {
+    "village": {
+      "food": 4,
+      "fuel": 2,
+      "medkits": 1,
+      "tokens": 2
+    },
+    "garage": {
+      "parts": 4,
+      "fuel": 3
+    },
+    "junkyard": {
+      "parts": 5,
+      "ammo": 2,
+      "fuel": 1
+    },
+    "checkpoint": {
+      "ammo": 3,
+      "food": 1
+    },
+    "special": {
+      "fuel": 1,
+      "food": 1,
+      "parts": 1,
+      "ammo": 1,
+      "medkits": 1
+    }
+  },
+  "scavengeRisk": {
+    "village": 0.1,
+    "garage": 0.1,
+    "junkyard": 0.25,
+    "checkpoint": 0.2,
+    "special": 0.15
+  },
+  "roadEventChance": 0.25,
+  "stopEventChance": 0.3,
+  "tank": {
+    "hitChance": 0.5,
+    "hitChanceOnLoss": 0.8,
+    "hitDamage": [
+      1,
+      2
+    ],
+    "punctureLoss": [
+      4,
+      8
+    ],
+    "leakPerLeg": 5
+  },
+  "rivalChance": 0.25,
+  "rushFuelMult": 1.5,
+  "contestedActions": 1,
+  "repairDurabilityPerPart": 2,
+  "garagePartsMult": 0.5,
+  "sellMult": 0.5,
+  "visibility": {
+    "base": 2,
+    "navigatorBonus": 1
+  },
+  "combat": {
+    "tickSeconds": 0.5,
+    "startDistance": 2,
+    "distanceStep": 0.04,
+    "escapeTicks": 40,
+    "escapeMidRate": 0.5,
+    "enemyAccuracyMult": 0.85,
+    "evasion": {
+      "base": 0.05,
+      "engine": 0.1,
+      "wheels": 0.05,
+      "navigator": 0.05,
+      "driver": 0.05
+    },
+    "crewWoundChance": 0.25,
+    "driverWoundChance": 0.3,
+    "mechanicRepairTicks": 20,
+    "gunnerRepairTicks": 40,
+    "medicHealTicks": 30,
+    "burnEvery": 10,
+    "ambushChance": 0.12,
+    "maxTicks": 1200,
+    "brokenEngineFuelMult": 1.5,
+    "brokenWheelsFuelMult": 1.25
+  }
+}

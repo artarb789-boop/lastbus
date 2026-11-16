@@ -1,0 +1,43 @@
+{
+  "id": "ev_road_dust_storm",
+  "kind": "road",
+  "weight": 7,
+  "conditions": [],
+  "textKey": "ev.dust_storm.text",
+  "choices": [
+    {
+      "textKey": "ev.dust_storm.wait",
+      "requires": {
+        "resources": {
+          "food": 3
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "food": -3
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.dust_storm.drive",
+      "check": {
+        "chance": 0.6
+      },
+      "success": [],
+      "fail": [
+        {
+          "type": "damageItems",
+          "count": 1,
+          "amount": 1
+        },
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

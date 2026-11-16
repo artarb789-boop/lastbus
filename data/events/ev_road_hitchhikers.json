@@ -1,0 +1,22 @@
+{
+  "id": "ev_road_hitchhikers",
+  "kind": "road",
+  "weight": 10,
+  "conditions": [],
+  "textKey": "ev.hitchhikers.text",
+  "choices": [
+    {
+      "textKey": "ev.hitchhikers.take",
+      "effects": [
+        {
+          "type": "addPassengers",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "textKey": "ev.hitchhikers.pass",
+      "effects": []
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "id": "ev_road_sniper",
+  "kind": "road",
+  "weight": 8,
+  "conditions": [
+    {
+      "type": "minPassengers",
+      "value": 1
+    }
+  ],
+  "textKey": "ev.sniper.text",
+  "choices": [
+    {
+      "textKey": "ev.sniper.return_fire",
+      "requires": {
+        "itemTag": "ranged",
+        "resources": {
+          "ammo": 2
+        }
+      },
+      "check": {
+        "chance": 0.6
+      },
+      "success": [
+        {
+          "type": "resource",
+          "delta": {
+            "ammo": -2,
+            "tokens": 3
+          }
+        }
+      ],
+      "fail": [
+        {
+          "type": "resource",
+          "delta": {
+            "ammo": -2
+          }
+        },
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.sniper.speed_through",
+      "effects": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        },
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": -2
+          }
+        }
+      ]
+    }
+  ]
+}

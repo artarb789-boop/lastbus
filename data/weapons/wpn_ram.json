@@ -1,0 +1,29 @@
+{
+  "id": "wpn_ram",
+  "nameKey": "item.wpn_ram.name",
+  "descKey": "item.wpn_ram.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "front"
+  ],
+  "durability": 4,
+  "price": 6,
+  "installCost": {
+    "parts": 3
+  },
+  "tags": [
+    "ram",
+    "melee"
+  ],
+  "weapon": {
+    "ranges": [
+      "contact"
+    ],
+    "charge": 20,
+    "shots": 1,
+    "damage": 4,
+    "ammoPerVolley": 0,
+    "accuracy": 0.9,
+    "selfDamage": 1
+  }
+}

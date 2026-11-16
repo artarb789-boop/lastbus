@@ -1,18 +1,16 @@
-import type { MapEdge, RunState } from "./state";
-import { ROAD_FUEL, WEIGHT_FREE, WEIGHT_FUEL_FACTOR } from "./stubs";
+import type { Content } from "./content";
+import { fuelMult } from "./equipment";
+import type { MapEdge, Pace, RunState } from "./state";
 
 /**
- * Вес автобуса (GDD 7.4): пассажиры × 1 + оружие и броня + груз / 3.
- * Оружия и брони в M0 ещё нет. Топливо и жетоны грузом не считаются.
+ * Расход топлива на перегон, округлён вверх (GDD 7.4).
+ * Зависит от дороги, модулей двигателя, темпа (рывок дороже) и состояния ходовой:
+ * разбитые двигатель или колёса заметно увеличивают расход.
  */
-export function busWeight(state: RunState): number {
-  const r = state.resources;
-  const cargo = r.food + r.parts + r.ammo + r.medkits;
-  return state.passengers.length + cargo / 3;
-}
-
-/** Расход топлива на перегон, округлён вверх. */
-export function fuelCost(state: RunState, edge: MapEdge): number {
-  const overload = Math.max(0, busWeight(state) - WEIGHT_FREE);
-  return Math.ceil(ROAD_FUEL[edge.road] * (1 + WEIGHT_FUEL_FACTOR * overload));
+export function fuelCost(state: RunState, content: Content, edge: MapEdge, pace: Pace = "normal"): number {
+  const b = content.balance;
+  const paceMult = pace === "rush" ? b.rushFuelMult : 1;
+  const engineMult = state.systems.engine.hp <= 0 ? b.combat.brokenEngineFuelMult : 1;
+  const wheelsMult = state.systems.wheels.hp <= 0 ? b.combat.brokenWheelsFuelMult : 1;
+  return Math.ceil(b.roads[edge.road].fuel * fuelMult(state, content) * paceMult * engineMult * wheelsMult);
 }

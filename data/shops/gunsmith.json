@@ -1,0 +1,35 @@
+{
+  "id": "gunsmith",
+  "nameKey": "shop.gunsmith.name",
+  "stock": [
+    {
+      "type": "resource",
+      "resource": "ammo",
+      "amount": [
+        4,
+        8
+      ],
+      "price": 3
+    },
+    {
+      "type": "resource",
+      "resource": "ammo",
+      "amount": [
+        4,
+        8
+      ],
+      "price": 3
+    },
+    {
+      "type": "item",
+      "itemKinds": [
+        "weapon"
+      ],
+      "count": [
+        1,
+        2
+      ],
+      "priceMult": 1.0
+    }
+  ]
+}

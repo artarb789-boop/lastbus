@@ -1,0 +1,40 @@
+{
+  "id": "enemy_siphoners",
+  "nameKey": "enemy.enemy_siphoners.name",
+  "kind": "raider",
+  "tier": 1,
+  "weight": 15,
+  "hull": 7,
+  "systems": {
+    "engine": 3,
+    "wheels": 2,
+    "cabin": 2,
+    "tank": 3
+  },
+  "evasion": 0.15,
+  "speed": 1.0,
+  "armor": 0,
+  "weapons": [
+    "wpn_mg",
+    "wpn_flamer"
+  ],
+  "ai": "tank_hunter",
+  "preferredRange": "near",
+  "loot": {
+    "resources": {
+      "tokens": [
+        2,
+        4
+      ],
+      "fuel": [
+        8,
+        15
+      ]
+    },
+    "survivors": [
+      0,
+      1
+    ]
+  },
+  "fleeAtHull": 0.3
+}

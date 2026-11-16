@@ -1,0 +1,33 @@
+{
+  "id": "kiosk",
+  "nameKey": "shop.kiosk.name",
+  "stock": [
+    {
+      "type": "resource",
+      "resource": "fuel",
+      "amount": [
+        12,
+        20
+      ],
+      "price": 4
+    },
+    {
+      "type": "resource",
+      "resource": "fuel",
+      "amount": [
+        12,
+        20
+      ],
+      "price": 4
+    },
+    {
+      "type": "resource",
+      "resource": "food",
+      "amount": [
+        4,
+        6
+      ],
+      "price": 3
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "ev_stop_doctor",
+  "kind": "stop",
+  "weight": 8,
+  "conditions": [],
+  "textKey": "ev.doctor.text",
+  "choices": [
+    {
+      "textKey": "ev.doctor.pay",
+      "requires": {
+        "resources": {
+          "tokens": 3
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -3
+          }
+        },
+        {
+          "type": "healWounded",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "textKey": "ev.doctor.leave",
+      "effects": []
+    }
+  ]
+}

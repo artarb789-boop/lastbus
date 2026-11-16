@@ -1,0 +1,47 @@
+{
+  "id": "ev_stop_market_day",
+  "kind": "stop",
+  "weight": 10,
+  "conditions": [],
+  "textKey": "ev.market_day.text",
+  "choices": [
+    {
+      "textKey": "ev.market_day.fuel",
+      "requires": {
+        "resources": {
+          "tokens": 4
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -4,
+            "fuel": 12
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.market_day.ammo",
+      "requires": {
+        "resources": {
+          "tokens": 3
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -3,
+            "ammo": 6
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.market_day.leave",
+      "effects": []
+    }
+  ]
+}

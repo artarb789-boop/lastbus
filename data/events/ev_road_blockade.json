@@ -1,0 +1,57 @@
+{
+  "id": "ev_road_blockade",
+  "kind": "road",
+  "weight": 10,
+  "conditions": [
+    {
+      "type": "roadType",
+      "in": [
+        "highway",
+        "dirt"
+      ]
+    }
+  ],
+  "textKey": "ev.blockade.text",
+  "choices": [
+    {
+      "textKey": "ev.blockade.clear",
+      "requires": {
+        "healthyPassengers": 3
+      },
+      "check": {
+        "chance": 0.7
+      },
+      "success": [],
+      "fail": [
+        {
+          "type": "woundPassengers",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.blockade.ram",
+      "requires": {
+        "itemTag": "ram"
+      },
+      "effects": [
+        {
+          "type": "damageItems",
+          "count": 1,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "textKey": "ev.blockade.detour",
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "fuel": -6
+          }
+        }
+      ]
+    }
+  ]
+}

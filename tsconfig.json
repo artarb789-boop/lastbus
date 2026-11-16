@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["core", "sim", "tests"]
+  "include": ["core", "sim", "tests", "tools"]
 }

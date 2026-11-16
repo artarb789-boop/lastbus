@@ -1,0 +1,49 @@
+{
+  "id": "ev_stop_welder",
+  "kind": "stop",
+  "weight": 7,
+  "conditions": [],
+  "textKey": "ev.welder.text",
+  "choices": [
+    {
+      "textKey": "ev.welder.tank",
+      "requires": {
+        "resources": {
+          "tokens": 3
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -3
+          }
+        },
+        {
+          "type": "repairTank"
+        }
+      ]
+    },
+    {
+      "textKey": "ev.welder.parts",
+      "requires": {
+        "resources": {
+          "tokens": 4
+        }
+      },
+      "effects": [
+        {
+          "type": "resource",
+          "delta": {
+            "tokens": -4,
+            "parts": 4
+          }
+        }
+      ]
+    },
+    {
+      "textKey": "ev.welder.leave",
+      "effects": []
+    }
+  ]
+}

@@ -1,0 +1,409 @@
+/**
+ * Бой автобус на автобус (GDD 8), по образцу FTL: реальное время с паузой.
+ * Ядро считает бой дискретными тиками; клиент вызывает advance по таймеру и останавливает его на паузе.
+ * Всё детерминировано: случайность только из state.rng.
+ */
+import type { Content, EnemyPhaseEffect, RangeBand, WeaponEffect } from "../content";
+import { harm, hurtDriver, occupant } from "../crew";
+import { coveredSeats, itemDef, working } from "../equipment";
+import { log } from "../log";
+import { chance, pick } from "../rng";
+import type {
+  CombatResult,
+  CombatSource,
+  CombatState,
+  EnemyState,
+  Maneuver,
+  PlayerWeaponState,
+  RunState,
+  StatusTimers,
+  SystemHp,
+  TargetRef,
+} from "../state";
+import { damageTank } from "../tank";
+import { BAND_CENTER, enemyIsFleeing, enemyManeuver, retargetEnemy } from "./ai";
+
+export function bandOf(distance: number): RangeBand {
+  if (distance < 0.5) return "contact";
+  if (distance < 1.5) return "near";
+  if (distance < 2.5) return "mid";
+  return "far";
+}
+
+function emptyStatus(): StatusTimers {
+  return { tethered: 0, slowed: 0, burning: [] };
+}
+
+function hp(max: number): SystemHp {
+  return { hp: max, max };
+}
+
+// ---------- Начало боя ----------
+
+export function startCombat(state: RunState, content: Content, enemyId: string, source: CombatSource): CombatState {
+  const def = content.enemies[enemyId];
+  if (!def) throw new Error(`unknown enemy ${enemyId}`);
+  const b = content.balance.combat;
+  const enemy: EnemyState = {
+    enemyId,
+    hull: hp(def.hull),
+    systems: { engine: hp(def.systems.engine), wheels: hp(def.systems.wheels), cabin: hp(def.systems.cabin), tank: hp(def.systems.tank) },
+    weapons: def.weapons.map((itemId) => {
+      const item = content.items[itemId]!;
+      return { itemId, hp: item.durability, max: item.durability, charge: 0, target: "hull" as TargetRef, disabled: false };
+    }),
+    ai: def.ai,
+    preferredRange: def.preferredRange,
+    maneuver: "hold",
+    escape: 0,
+    phasesDone: 0,
+    status: emptyStatus(),
+  };
+  const weapons: PlayerWeaponState[] = Object.entries(state.equipment)
+    .filter(([, inst]) => inst && content.items[inst.itemId]?.kind === "weapon")
+    .map(([slotId]) => ({ slotId, charge: 0, target: "hull" as TargetRef, repairTimer: 0 }));
+
+  const combat: CombatState = {
+    source,
+    tick: 0,
+    // Засада начинается вблизи и с заряженными наполовину стволами врага.
+    distance: source === "ambush" ? 1 : b.startDistance,
+    maneuver: "hold",
+    escape: 0,
+    weapons,
+    status: emptyStatus(),
+    mechanicTimer: 0,
+    medicTimer: 0,
+    enemy,
+  };
+  if (source === "ambush") {
+    for (const w of enemy.weapons) w.charge = Math.floor(content.items[w.itemId]!.weapon!.charge / 2);
+  }
+  retargetEnemy(state, content, combat, true);
+  state.stats.fights += 1;
+  log(state, `combat (${source}) vs ${enemyId}`);
+  return combat;
+}
+
+// ---------- Параметры сторон ----------
+
+function seatHealthy(state: RunState, seatId: string | undefined): boolean {
+  if (!seatId) return false;
+  const p = occupant(state, seatId);
+  return p !== undefined && p.status === "healthy";
+}
+
+function roleSeat(state: RunState, role: string): string | undefined {
+  return state.bus.seats.find((s) => s.role === role)?.id;
+}
+
+export function playerEvasion(state: RunState, content: Content): number {
+  const e = content.balance.combat.evasion;
+  let ev = e.base;
+  if (state.systems.engine.hp > 0) ev += e.engine;
+  if (state.systems.wheels.hp > 0) ev += e.wheels;
+  if (seatHealthy(state, roleSeat(state, "navigator"))) ev += e.navigator;
+  if (state.driver.status === "healthy" && state.systems.cabin.hp > 0) ev += e.driver;
+  return ev;
+}
+
+export function enemyEvasion(content: Content, combat: CombatState): number {
+  const def = content.enemies[combat.enemy.enemyId]!;
+  return combat.enemy.systems.engine.hp > 0 ? def.evasion : 0;
+}
+
+function playerSpeed(state: RunState, combat: CombatState): number {
+  if (state.systems.engine.hp <= 0) return 0;
+  let v = state.systems.wheels.hp > 0 ? 1 : 0.5;
+  if (combat.status.slowed > 0) v *= 0.5;
+  return v;
+}
+
+function enemySpeed(content: Content, combat: CombatState): number {
+  const e = combat.enemy;
+  if (e.systems.engine.hp <= 0) return 0;
+  let v = content.enemies[e.enemyId]!.speed * (e.systems.wheels.hp > 0 ? 1 : 0.5);
+  if (e.status.slowed > 0) v *= 0.5;
+  return v;
+}
+
+const DIR: Record<Maneuver, number> = { approach: -1, hold: 0, retreat: 1 };
+
+/** Работает ли пост при оружии игрока: носовое — от водителя, остальное — от пассажира на посту. */
+export function weaponManned(state: RunState, slotId: string): boolean {
+  const slot = state.bus.slots.find((s) => s.id === slotId);
+  if (slot?.kind === "front") return state.driver.status === "healthy";
+  const post = state.bus.seats.find((s) => s.role === "weapon" && s.slot === slotId);
+  return seatHealthy(state, post?.id);
+}
+
+export function canEscape(combat: CombatState, content: Content): boolean {
+  return combat.source !== "boss" && combat.escape >= content.balance.combat.escapeTicks;
+}
+
+// ---------- Урон ----------
+
+function hitEnemy(content: Content, combat: CombatState, target: TargetRef, dmg: number, armored: boolean): void {
+  const e = combat.enemy;
+  // Броня снижает урон, но попадание всегда наносит хотя бы 1.
+  const d = armored && dmg > 0 ? Math.max(1, dmg - content.enemies[e.enemyId]!.armor) : dmg;
+  if (d <= 0) return;
+  e.hull.hp = Math.max(0, e.hull.hp - d);
+  if (target === "engine" || target === "wheels" || target === "cabin" || target === "tank") {
+    e.systems[target].hp = Math.max(0, e.systems[target].hp - d);
+  } else if (target.startsWith("weapon:")) {
+    const w = e.weapons[Number(target.slice(7))];
+    if (w) w.hp = Math.max(0, w.hp - d);
+  }
+}
+
+/** Попадание по автобусу игрока: броня борта, затем корпус и цель, затем люди у борта. */
+function hitPlayer(state: RunState, content: Content, target: TargetRef, dmg: number, armored: boolean): void {
+  const b = content.balance.combat;
+  let d = dmg;
+  const side: "left" | "right" = pick(state.rng, ["left", "right"] as const);
+  const sideCol = side === "left" ? Math.min(...state.bus.exposedCols) : Math.max(...state.bus.exposedCols);
+
+  if (armored) {
+    // Лучший целый бронелист на этом борту принимает удар.
+    const plates = working(state, content).filter(
+      (x) =>
+        x.def.armor &&
+        (x.slot.covers ?? []).some((seatId) => state.bus.seats.find((s) => s.id === seatId)?.col === sideCol),
+    );
+    plates.sort((a, b2) => b2.def.armor!.rating - a.def.armor!.rating);
+    const plate = plates[0];
+    if (plate && d > 0) {
+      d = Math.max(1, d - plate.def.armor!.rating);
+      plate.inst.durability = Math.max(0, plate.inst.durability - 1);
+    }
+  }
+  if (d <= 0) return;
+
+  state.hull.hp = Math.max(0, state.hull.hp - d);
+  if (target === "engine" || target === "wheels" || target === "cabin") {
+    state.systems[target].hp = Math.max(0, state.systems[target].hp - d);
+    if (target === "cabin" && chance(state.rng, b.driverWoundChance)) hurtDriver(state, "cabin hit");
+  } else if (target === "tank") {
+    damageTank(state, content, d, "combat");
+  } else if (target.startsWith("weapon:")) {
+    const inst = state.equipment[target.slice(7)];
+    if (inst) inst.durability = Math.max(0, inst.durability - d);
+  }
+
+  // Люди у этого борта, не закрытые бронёй.
+  if (chance(state.rng, b.crewWoundChance)) {
+    const covered = coveredSeats(state, content);
+    const exposed = state.passengers.filter((p) => {
+      const seat = state.bus.seats.find((s) => s.id === p.seat);
+      return seat?.col === sideCol && !covered.has(p.seat);
+    });
+    if (exposed.length > 0) harm(state, pick(state.rng, exposed), "combat");
+  }
+}
+
+function applyEffects(status: StatusTimers, target: TargetRef, effects: WeaponEffect[] | undefined): void {
+  for (const eff of effects ?? []) {
+    if (eff.type === "tether") status.tethered = Math.max(status.tethered, eff.ticks);
+    if (eff.type === "slow") status.slowed = Math.max(status.slowed, eff.ticks);
+    if (eff.type === "burn") status.burning.push({ target, ticks: eff.ticks });
+  }
+}
+
+// ---------- Фазы босса ----------
+
+function applyPhase(state: RunState, content: Content, combat: CombatState, effects: EnemyPhaseEffect[]): void {
+  const e = combat.enemy;
+  for (const eff of effects) {
+    if (eff.type === "disableWeapons") {
+      let left = eff.count;
+      for (const w of e.weapons) {
+        if (left <= 0) break;
+        if (!w.disabled && w.hp > 0) {
+          w.disabled = true;
+          left--;
+        }
+      }
+    }
+    if (eff.type === "setAi") e.ai = eff.ai;
+    if (eff.type === "setPreferredRange") e.preferredRange = eff.range;
+  }
+  retargetEnemy(state, content, combat, true);
+  log(state, `enemy phase ${e.phasesDone}`);
+}
+
+// ---------- Тик ----------
+
+/** Один тик боя. Возвращает исход, если бой закончился. */
+export function combatTick(state: RunState, content: Content, combat: CombatState): CombatResult | null {
+  const b = content.balance.combat;
+  const e = combat.enemy;
+  const def = content.enemies[e.enemyId]!;
+  combat.tick += 1;
+
+  // 1. Статусы и горение.
+  for (const [status, isPlayer] of [
+    [combat.status, true],
+    [e.status, false],
+  ] as const) {
+    if (status.tethered > 0) status.tethered--;
+    if (status.slowed > 0) status.slowed--;
+    for (const burn of status.burning) {
+      burn.ticks--;
+      if (combat.tick % b.burnEvery === 0) {
+        if (isPlayer) hitPlayer(state, content, burn.target, 1, false);
+        else hitEnemy(content, combat, burn.target, 1, false);
+      }
+    }
+    status.burning = status.burning.filter((x) => x.ticks > 0);
+  }
+
+  // 2. Фазы босса.
+  const phases = def.phases ?? [];
+  while (e.phasesDone < phases.length && e.hull.hp <= phases[e.phasesDone]!.atHull * e.hull.max) {
+    e.phasesDone++;
+    applyPhase(state, content, combat, phases[e.phasesDone - 1]!.effects);
+  }
+
+  // 3. Движение.
+  e.maneuver = enemyManeuver(content, combat);
+  const tethered = combat.status.tethered > 0 || e.status.tethered > 0;
+  let delta = b.distanceStep * (DIR[combat.maneuver] * playerSpeed(state, combat) + DIR[e.maneuver] * enemySpeed(content, combat));
+  if (tethered && delta > 0) delta = 0;
+  combat.distance = Math.max(0, Math.min(3, combat.distance + delta));
+  const band = bandOf(combat.distance);
+
+  // 4. Отрыв: копится на средней и дальней дистанции, пока работает двигатель и нет сцепки.
+  const escapeRate = band === "far" ? 1 : band === "mid" ? b.escapeMidRate : 0;
+  if (escapeRate > 0 && !tethered) {
+    if (state.systems.engine.hp > 0) combat.escape = Math.min(b.escapeTicks, combat.escape + escapeRate);
+    if (enemyIsFleeing(content, combat) && e.systems.engine.hp > 0) {
+      e.escape += escapeRate;
+      if (e.escape >= b.escapeTicks) return "enemy_fled";
+    }
+  }
+
+  // 5. Механик и медик на постах.
+  if (seatHealthy(state, roleSeat(state, "mechanic"))) {
+    combat.mechanicTimer++;
+    if (combat.mechanicTimer >= b.mechanicRepairTicks) {
+      combat.mechanicTimer = 0;
+      mechanicCombatRepair(state, content);
+    }
+  }
+  if (seatHealthy(state, roleSeat(state, "medic"))) {
+    combat.medicTimer++;
+    if (combat.medicTimer >= b.medicHealTicks) {
+      combat.medicTimer = 0;
+      const wounded = state.passengers.find((p) => p.status === "wounded");
+      if (wounded) {
+        wounded.status = "healthy";
+        log(state, `medic healed ${wounded.id}`);
+      }
+    }
+  }
+
+  // 6. Оружие игрока.
+  for (const w of combat.weapons) {
+    const inst = state.equipment[w.slotId];
+    if (!inst) {
+      w.charge = 0;
+      continue;
+    }
+    if (inst.durability <= 0) {
+      w.charge = 0;
+      // Стрелок на посту латает свой ствол, как экипаж в отсеке в FTL.
+      if (weaponManned(state, w.slotId)) {
+        w.repairTimer++;
+        if (w.repairTimer >= b.gunnerRepairTicks) {
+          w.repairTimer = 0;
+          inst.durability = 1;
+          log(state, `gunner patched ${inst.itemId}`);
+        }
+      }
+      continue;
+    }
+    if (!weaponManned(state, w.slotId)) continue;
+    const stats = itemDef(content, inst).weapon!;
+    w.charge = Math.min(stats.charge, w.charge + 1);
+    if (w.charge < stats.charge || !stats.ranges.includes(band) || state.resources.ammo < stats.ammoPerVolley) continue;
+
+    state.resources.ammo -= stats.ammoPerVolley;
+    w.charge = 0;
+    const p = clampHit(stats.accuracy - enemyEvasion(content, combat));
+    let hits = 0;
+    for (let k = 0; k < stats.shots; k++) {
+      if (chance(state.rng, p)) {
+        hits++;
+        hitEnemy(content, combat, w.target, stats.damage, true);
+      }
+    }
+    if (hits > 0) applyEffects(e.status, w.target, stats.effects);
+    if (stats.selfDamage) state.hull.hp = Math.max(0, state.hull.hp - stats.selfDamage);
+  }
+
+  // 7. Оружие врага.
+  retargetEnemy(state, content, combat);
+  for (const w of e.weapons) {
+    if (w.disabled || w.hp <= 0) {
+      w.charge = 0;
+      continue;
+    }
+    // Разбитая кабина — экипаж врага работает вдвое медленнее.
+    if (e.systems.cabin.hp <= 0 && combat.tick % 2 === 1) continue;
+    const stats = content.items[w.itemId]!.weapon!;
+    w.charge = Math.min(stats.charge, w.charge + 1);
+    if (w.charge < stats.charge || !stats.ranges.includes(band)) continue;
+    w.charge = 0;
+    const p = clampHit(stats.accuracy * b.enemyAccuracyMult - playerEvasion(state, content));
+    let hits = 0;
+    for (let k = 0; k < stats.shots; k++) {
+      if (chance(state.rng, p)) {
+        hits++;
+        hitPlayer(state, content, w.target, stats.damage, true);
+      }
+    }
+    if (hits > 0) applyEffects(combat.status, w.target, stats.effects);
+    if (stats.selfDamage) e.hull.hp = Math.max(0, e.hull.hp - stats.selfDamage);
+  }
+
+  // 8. Исход.
+  if (state.phase.type === "over") return "lost"; // водитель погиб
+  if (state.hull.hp <= 0) return "lost";
+  if (e.hull.hp <= 0) return "won";
+  if (def.surrenderAtHull !== undefined && e.hull.hp <= def.surrenderAtHull * e.hull.max) return "surrendered";
+  // Затянувшийся бой: обычный враг уходит, босс дорогу не уступает.
+  if (combat.tick >= b.maxTicks) return combat.source === "boss" ? "lost" : "enemy_fled";
+  return null;
+}
+
+function clampHit(p: number): number {
+  return Math.max(0.05, Math.min(0.95, p));
+}
+
+/** Механик в бою: двигатель, колёса, кабина, бак, затем оружие. Корпус чинится только на остановке. */
+function mechanicCombatRepair(state: RunState, content: Content): void {
+  for (const sys of ["engine", "wheels", "cabin"] as const) {
+    if (state.systems[sys].hp < state.systems[sys].max) {
+      state.systems[sys].hp++;
+      log(state, `mechanic repaired ${sys} +1`);
+      return;
+    }
+  }
+  if (state.tank.durability < state.tank.max) {
+    state.tank.durability++;
+    log(state, "mechanic patched tank +1");
+    return;
+  }
+  for (const [, inst] of Object.entries(state.equipment)) {
+    if (!inst) continue;
+    const def = content.items[inst.itemId]!;
+    if (def.kind === "weapon" && inst.durability < def.durability) {
+      inst.durability++;
+      log(state, `mechanic repaired ${inst.itemId} +1`);
+      return;
+    }
+  }
+}
+
+export { BAND_CENTER };

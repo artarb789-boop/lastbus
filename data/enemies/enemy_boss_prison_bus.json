@@ -1,0 +1,68 @@
+{
+  "id": "enemy_boss_prison_bus",
+  "nameKey": "enemy.enemy_boss_prison_bus.name",
+  "kind": "boss",
+  "tier": 1,
+  "weight": 1,
+  "hull": 24,
+  "systems": {
+    "engine": 6,
+    "wheels": 5,
+    "cabin": 4,
+    "tank": 4
+  },
+  "evasion": 0.05,
+  "speed": 0.8,
+  "armor": 1,
+  "weapons": [
+    "wpn_mg",
+    "wpn_shotgun",
+    "wpn_ram",
+    "wpn_rockets"
+  ],
+  "ai": "gunner",
+  "preferredRange": "mid",
+  "loot": {
+    "resources": {
+      "tokens": [
+        10,
+        15
+      ],
+      "ammo": [
+        5,
+        8
+      ],
+      "parts": [
+        4,
+        6
+      ],
+      "fuel": [
+        10,
+        20
+      ]
+    },
+    "survivors": [
+      2,
+      4
+    ]
+  },
+  "phases": [
+    {
+      "atHull": 0.5,
+      "effects": [
+        {
+          "type": "disableWeapons",
+          "count": 2
+        },
+        {
+          "type": "setAi",
+          "ai": "berserk"
+        },
+        {
+          "type": "setPreferredRange",
+          "range": "contact"
+        }
+      ]
+    }
+  ]
+}

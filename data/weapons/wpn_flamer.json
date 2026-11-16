@@ -1,0 +1,35 @@
+{
+  "id": "wpn_flamer",
+  "nameKey": "item.wpn_flamer.name",
+  "descKey": "item.wpn_flamer.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "side"
+  ],
+  "durability": 2,
+  "price": 9,
+  "installCost": {
+    "parts": 2
+  },
+  "tags": [
+    "ranged",
+    "fire"
+  ],
+  "weapon": {
+    "ranges": [
+      "contact",
+      "near"
+    ],
+    "charge": 20,
+    "shots": 1,
+    "damage": 2,
+    "ammoPerVolley": 1,
+    "accuracy": 0.85,
+    "effects": [
+      {
+        "type": "burn",
+        "ticks": 40
+      }
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "item",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "nameKey",
+    "descKey",
+    "kind",
+    "slotKinds",
+    "durability",
+    "price",
+    "installCost",
+    "tags"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "common#/definitions/id"
+    },
+    "nameKey": {
+      "$ref": "common#/definitions/key"
+    },
+    "descKey": {
+      "$ref": "common#/definitions/key"
+    },
+    "kind": {
+      "$ref": "common#/definitions/itemKind"
+    },
+    "slotKinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common#/definitions/slotKind"
+      }
+    },
+    "durability": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "price": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "installCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parts"
+      ],
+      "properties": {
+        "parts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common#/definitions/id"
+      }
+    },
+    "weapon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ranges",
+        "charge",
+        "shots",
+        "damage",
+        "ammoPerVolley",
+        "accuracy"
+      ],
+      "properties": {
+        "ranges": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common#/definitions/rangeBand"
+          }
+        },
+        "charge": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "shots": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "damage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ammoPerVolley": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accuracy": {
+          "$ref": "common#/definitions/probability"
+        },
+        "selfDamage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "ticks"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "burn",
+                  "tether",
+                  "slow"
+                ]
+              },
+              "ticks": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "passive": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "tankBonus",
+              "fuelMult",
+              "healCapacity"
+            ]
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "armor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rating"
+      ],
+      "properties": {
+        "rating": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "kind": {
+        "const": "weapon"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "weapon"
+    ]
+  },
+  "else": {
+    "not": {
+      "required": [
+        "weapon"
+      ]
+    }
+  }
+}

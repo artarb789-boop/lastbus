@@ -1,0 +1,23 @@
+{
+  "id": "mod_big_tank",
+  "nameKey": "item.mod_big_tank.name",
+  "descKey": "item.mod_big_tank.desc",
+  "kind": "internal",
+  "slotKinds": [
+    "internal"
+  ],
+  "durability": 4,
+  "price": 7,
+  "installCost": {
+    "parts": 2
+  },
+  "tags": [
+    "tank"
+  ],
+  "passive": [
+    {
+      "type": "tankBonus",
+      "value": 30
+    }
+  ]
+}

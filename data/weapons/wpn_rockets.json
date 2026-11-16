@@ -1,0 +1,29 @@
+{
+  "id": "wpn_rockets",
+  "nameKey": "item.wpn_rockets.name",
+  "descKey": "item.wpn_rockets.desc",
+  "kind": "weapon",
+  "slotKinds": [
+    "roof"
+  ],
+  "durability": 2,
+  "price": 12,
+  "installCost": {
+    "parts": 3
+  },
+  "tags": [
+    "ranged",
+    "heavy"
+  ],
+  "weapon": {
+    "ranges": [
+      "mid",
+      "far"
+    ],
+    "charge": 36,
+    "shots": 1,
+    "damage": 5,
+    "ammoPerVolley": 1,
+    "accuracy": 0.7
+  }
+}

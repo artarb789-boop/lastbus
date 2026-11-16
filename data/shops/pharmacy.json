@@ -1,0 +1,24 @@
+{
+  "id": "pharmacy",
+  "nameKey": "shop.pharmacy.name",
+  "stock": [
+    {
+      "type": "resource",
+      "resource": "medkits",
+      "amount": [
+        1,
+        2
+      ],
+      "price": 3
+    },
+    {
+      "type": "resource",
+      "resource": "food",
+      "amount": [
+        3,
+        5
+      ],
+      "price": 3
+    }
+  ]
+}
