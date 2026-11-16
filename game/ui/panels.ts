@@ -11,7 +11,17 @@ import {
   type RepairableSystem,
 } from "../../core";
 import type { Store } from "../store";
+import { artImg } from "../art/images";
 import { cmdAttr, esc, itemName, NODE, RES, SHOP, SYSTEM, t, uiAttr } from "./text";
+
+/** Иконка ресурса: картинка ×2, если утверждена, иначе эмодзи. */
+function resIcon(k: keyof typeof RES): string {
+  return artImg(`resources/${k}.png`, 2, "res-icon", RES[k].label) || RES[k].icon;
+}
+
+function itemIcon(id: string): string {
+  return artImg(`items/${id}.png`, 2, "item-icon");
+}
 
 /** Выбор водителя перед новым забегом. */
 export function renderDriverPick(store: Store): string {
@@ -21,6 +31,7 @@ export function renderDriverPick(store: Store): string {
     .map(
       (d) => `
         <div class="driver-card">
+          ${artImg(`drivers/${d.id}.png`, 3, "portrait", "")}
           <h3>${esc(t(content, d.nameKey))}</h3>
           <p>${esc(t(content, d.descKey))}</p>
           <button class="primary" ${uiAttr("pickDriver", d.id)}>Ехать с этим водителем</button>
@@ -116,7 +127,7 @@ function stopPanel(store: Store): string {
 
   return `
     <section class="panel">
-      <h2>${NODE[node.kind].icon} ${esc(NODE[node.kind].label)}</h2>
+      <h2>${artImg(`map/${node.kind}.png`, 2, "node-icon") || NODE[node.kind].icon} ${esc(NODE[node.kind].label)}</h2>
       <p>Действий осталось: <b>${left}</b>${garage ? " · в автосервисе ремонт и установка вдвое дешевле" : ""}</p>
       <div class="block">
         <h4>Обыск</h4>
@@ -151,14 +162,15 @@ function shopPanel(store: Store): string {
     .map((o, i) => {
       const what =
         o.type === "resource"
-          ? `${RES[o.resource].icon} ${o.amount} ${RES[o.resource].label.toLowerCase()}`
-          : `🔫 ${esc(itemName(content, o.itemId))} <span class="muted">${esc(t(content, content.items[o.itemId]!.descKey))}</span>`;
+          ? `${resIcon(o.resource)} ${o.amount} ${RES[o.resource].label.toLowerCase()}`
+          : `${itemIcon(o.itemId) || "🔫"} ${esc(itemName(content, o.itemId))} <span class="muted">${esc(t(content, content.items[o.itemId]!.descKey))}</span>`;
       const can = !o.sold && state.resources.tokens >= o.price;
       return `<li class="${o.sold ? "sold" : ""}">${what} <button ${can ? "" : "disabled"} ${cmdAttr({ type: "buy", offerIndex: i })}>${o.sold ? "продано" : `Купить (🪙${o.price})`}</button></li>`;
     })
     .join("");
   return `
     <section class="panel">
+      ${artImg(`shops/${visit.kind}.png`, 3, "shop-sign")}
       <h2>🛒 ${esc(SHOP[visit.kind])}</h2>
       <p class="muted">Магазин у дороги — не остановка: пассажиры не выходят, действия не тратятся. Купленное можно сразу поставить в снаряжении справа.</p>
       <ul class="offers">${offers}</ul>
@@ -183,6 +195,7 @@ function eventPanel(store: Store): string {
   return `
     <section class="panel event">
       <h2>Событие</h2>
+      ${artImg(`events/${ev.id}.png`, 3, "event-art")}
       <p class="event-text">${esc(t(content, ev.textKey))}</p>
       <div class="choices">${choices}</div>
     </section>`;
@@ -195,12 +208,12 @@ function lootPanel(store: Store): string {
   if (state.phase.type !== "loot") return "";
   const { loot, result } = state.phase;
   const res = RESOURCE_KINDS.filter((k) => loot.resources[k])
-    .map((k) => `${RES[k].icon} +${loot.resources[k]}`)
+    .map((k) => `${resIcon(k)} +${loot.resources[k]}`)
     .join(" · ");
   const items = loot.items
     .map(
       (id, i) =>
-        `<button class="chip ${ui.lootItem === i ? "on" : ""}" ${uiAttr("lootItem", i)}>${esc(itemName(content, id))}</button>`,
+        `<button class="chip ${ui.lootItem === i ? "on" : ""}" ${uiAttr("lootItem", i)}>${itemIcon(id)}${esc(itemName(content, id))}</button>`,
     )
     .join("");
   return `

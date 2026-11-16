@@ -3,6 +3,7 @@
  * все изменения забега идут через команды ядра (store.dispatch).
  */
 import type { Command, TargetRef } from "../core";
+import { loadArt } from "./art/images";
 import { loadBrowserContent } from "./content";
 import { createStore, dispatch, startNewRun, type Store } from "./store";
 import { renderBus, renderGear } from "./ui/bus";
@@ -10,26 +11,63 @@ import { renderCombat } from "./ui/combat";
 import { renderHud } from "./ui/hud";
 import { renderMap } from "./ui/map";
 import { renderDriverPick, renderPanel } from "./ui/panels";
+import { CombatScene } from "./ui/scene";
 import { ERRORS, esc } from "./ui/text";
 
 const app = document.getElementById("app")!;
 const store: Store = createStore(loadBrowserContent());
 
+// Каркас создаётся один раз; дальше меняются только изменившиеся части.
+app.innerHTML = `
+  <header id="hud"></header>
+  <main class="layout" id="layout">
+    <div class="main-view"><div id="scene-host"></div><div id="main-html"></div></div>
+    <aside class="side" id="side"></aside>
+  </main>`;
+const parts = {
+  hud: document.getElementById("hud")!,
+  layout: document.getElementById("layout")!,
+  sceneHost: document.getElementById("scene-host")!,
+  main: document.getElementById("main-html")!,
+  side: document.getElementById("side")!,
+};
+const lastHtml = new Map<HTMLElement, string>();
+function setHtml(el: HTMLElement, html: string): void {
+  if (lastHtml.get(el) === html) return;
+  lastHtml.set(el, html);
+  el.innerHTML = html;
+}
+
+let scene: CombatScene | null = null;
+
 function render(): void {
   const { state } = store;
-  if (store.ui.choosingDriver) {
-    app.innerHTML = `${renderHud(store)}<main class="layout single"><div class="main-view">${renderDriverPick(store)}</div></main>`;
-    return;
+  const picking = store.ui.choosingDriver;
+  const inCombat = !picking && state.phase.type === "combat";
+
+  // HUD — это обёртка <header class="hud">, берём её содержимое.
+  setHtml(parts.hud, renderHud(store).replace(/^\s*<header class="hud">|<\/header>\s*$/g, ""));
+  parts.hud.className = "hud";
+  parts.layout.className = `layout ${picking ? "single" : ""} ${inCombat ? "in-combat" : ""}`;
+
+  if (inCombat) {
+    if (!scene) {
+      scene = new CombatScene();
+      parts.sceneHost.appendChild(scene.el);
+    }
+    scene.update(store, store.ui.paused);
+  } else if (scene) {
+    scene.el.remove();
+    scene = null;
   }
-  const inCombat = state.phase.type === "combat";
-  const main = inCombat ? renderCombat(store) : renderMap(store);
+
   const error = store.error ? `<div class="error">${esc(ERRORS[store.error] ?? store.error)}</div>` : "";
-  app.innerHTML = `
-    ${renderHud(store)}
-    <main class="layout ${inCombat ? "in-combat" : ""}">
-      <div class="main-view">${main}${error}${inCombat ? "" : renderPanel(store)}</div>
-      <aside class="side">${renderBus(store)}${renderGear(store)}</aside>
-    </main>`;
+  let main: string;
+  if (picking) main = renderDriverPick(store);
+  else if (inCombat) main = renderCombat(store) + error;
+  else main = renderMap(store) + error + renderPanel(store);
+  setHtml(parts.main, main);
+  setHtml(parts.side, picking ? "" : renderBus(store) + renderGear(store));
 }
 
 function send(cmd: Command): void {
@@ -169,5 +207,8 @@ function clock(): void {
   }
 }
 
-render();
-setInterval(clock, 50);
+// Картинки, которые нужно разобрать по пикселям, загружаются до первой отрисовки.
+void loadArt().finally(() => {
+  render();
+  setInterval(clock, 50);
+});

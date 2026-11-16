@@ -111,13 +111,14 @@ h4 { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: upp
 .seat.role-driver, .seat.role-navigator, .seat.role-mechanic, .seat.role-medic { background: #283340; }
 .seat .role { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.1; }
 .aisle { background: repeating-linear-gradient(0deg, #1c1f26 0 6px, #20242c 6px 12px); border-radius: 4px; }
-.person {
-  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%;
-  background: var(--amber); color: #1a1408; font-weight: 700;
+.person { position: relative; display: inline-block; line-height: 0; border-radius: 4px; }
+.person img { width: 21px; height: 27px; }
+.person .ticket {
+  position: absolute; right: -9px; top: -6px; line-height: 1; font-size: 11px; font-weight: 800;
+  background: var(--amber); color: #1a1408; border-radius: 8px; padding: 1px 4px;
 }
-.person.wounded { background: var(--red); color: #fff; }
-.person.selected { outline: 3px solid var(--blue); outline-offset: 1px; }
-.person.driver { background: transparent; font-size: 20px; }
+.person.wounded .ticket { background: var(--red); color: #fff; }
+.person.selected { outline: 2px solid var(--blue); outline-offset: 2px; }
 .legend { font-size: 12px; margin-bottom: 6px; }
 
 .slots { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -129,22 +130,48 @@ h4 { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: upp
 
 /* ---------- Бой ---------- */
 .combat-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.scene { width: 100%; height: auto; background: #1b1e25; border-radius: 8px; margin: 8px 0; }
-.road { fill: var(--road); }
-.lane { stroke: #6b6f78; stroke-dasharray: 18 14; stroke-width: 2; }
-.band { fill: transparent; }
-.band.active { fill: rgba(240, 180, 76, 0.15); }
-.band-label { fill: var(--muted); font-size: 11px; text-anchor: middle; }
-.vehicle rect:first-child { stroke-width: 2; }
-.vehicle.player rect:first-child { fill: #c98f2c; stroke: var(--amber); }
-.vehicle.enemy rect:first-child { fill: #7d3533; stroke: var(--red); }
-.vehicle .window { fill: #f6e3b0; opacity: 0.8; }
-.vehicle .wheel { fill: #111; stroke: #555; stroke-width: 2; }
-.vehicle .vlabel { fill: var(--text); font-size: 12px; text-anchor: middle; }
-.vehicle .hpbg { fill: #0f1115; }
-.vehicle.player .hp { fill: var(--green); }
-.vehicle.enemy .hp { fill: var(--red); }
-.tether { stroke: var(--blue); stroke-width: 3; stroke-dasharray: 6 4; }
+#scene-host .scene { width: 100%; height: auto; display: block; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--line); }
+.px { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* Бесконечная дорога: дюны и разметка едут влево, автобусы покачиваются. */
+.scene .dunes { animation: scroll-far 26s linear infinite; }
+.scene .dunes.near { animation-duration: 11s; }
+.scene .roadlayer { animation: scroll-far 12.5s linear infinite; }
+.scene .lane { stroke: #c9c1b0; stroke-width: 3; stroke-dasharray: 26 22; animation: lane 0.6s linear infinite; }
+.scene .bob { animation: bob 0.32s ease-in-out infinite alternate; }
+.scene .vehicle.enemy .bob { animation-delay: -0.15s; }
+.scene.paused .dunes, .scene.paused .roadlayer, .scene.paused .lane, .scene.paused .bob, .scene.paused .smoke circle { animation-play-state: paused; }
+@keyframes scroll-far { from { transform: translateX(0); } to { transform: translateX(-1000px); } }
+@keyframes lane { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 48; } }
+@keyframes bob { from { transform: translateY(0); } to { transform: translateY(1.5px); } }
+
+.scene .vehicle { transition: transform 0.45s linear; }
+.scene .vehicle.no-anim { transition: none; }
+.scene .hpbg { fill: #0f1115; }
+.scene .vehicle.player .hp { fill: var(--green); }
+.scene .vehicle.enemy .hp { fill: var(--red); }
+.scene .hitbox.hit { animation: hit 0.22s steps(2) 1; }
+@keyframes hit { 0% { filter: brightness(2.2) saturate(0.2); } 100% { filter: none; } }
+.scene .muzzle { fill: #ffe9a8; opacity: 0; }
+.scene .muzzle.flash { animation: flash 0.16s ease-out 1; }
+@keyframes flash { 0% { opacity: 1; r: 12; } 100% { opacity: 0; r: 4; } }
+.scene .smoke { display: none; }
+.scene .smoke.on { display: inline; }
+.scene .smoke circle { fill: #3b3a3f; opacity: 0.55; animation: smoke 1.4s ease-out infinite; }
+.scene .smoke circle:nth-child(2) { animation-delay: -0.5s; }
+.scene .smoke circle:nth-child(3) { animation-delay: -0.9s; }
+@keyframes smoke { from { transform: translate(0, 0) scale(0.6); opacity: 0.6; } to { transform: translate(-30px, -30px) scale(1.6); opacity: 0; } }
+.scene .fire { display: none; fill: var(--amber); }
+.scene .fire.on { display: inline; animation: fire 0.25s steps(2) infinite alternate; }
+@keyframes fire { from { fill: #ff8a2b; } to { fill: #ffd34d; } }
+.scene .tether { stroke: var(--blue); stroke-width: 3; stroke-dasharray: 6 4; opacity: 0; }
+.scene .tether.on { opacity: 1; }
+.scene .band { fill: transparent; }
+.scene .band.active { fill: rgba(240, 180, 76, 0.25); }
+.scene .band-label { fill: #e8e4da; font-size: 11px; text-anchor: middle; }
+.scene .dmg { fill: #fff; font-weight: 800; font-size: 20px; text-anchor: middle; paint-order: stroke; stroke: #8a1f1b; stroke-width: 3px; animation: dmg 0.9s ease-out forwards; }
+@keyframes dmg { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-36px); opacity: 0; } }
+
 .combat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 800px) { .combat-grid { grid-template-columns: 1fr; } }
 .weapon { border-top: 1px solid var(--line); padding: 6px 0; }
@@ -159,3 +186,8 @@ h4 { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: upp
 .drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
 .driver-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; }
 .driver-card p { flex: 1; }
+
+/* Сгенерированные картинки (assets/img) */
+.res-icon, .item-icon, .node-icon { vertical-align: middle; margin-right: 4px; }
+.driver-card .portrait { display: block; margin: 0 auto 8px; }
+.shop-sign, .event-art { display: block; margin: 0 0 10px; max-width: 100%; height: auto; }

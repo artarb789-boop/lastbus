@@ -2,3 +2,4 @@ node_modules/
 dist/
 sim/reports/
 *.log
+assets/img/**/*_x3.png

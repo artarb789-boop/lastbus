@@ -1,0 +1,21 @@
+#gallery { max-width: 1200px; margin: 0 auto; padding: 16px; }
+.g-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; }
+.g-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 16px; }
+.g-filters button.on { border-color: var(--amber); color: var(--amber); }
+.g-section h2 { margin: 24px 0 8px; }
+.g-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.g-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-width: 0; }
+.g-card h3 { font-size: 14px; margin: 0 0 4px; }
+.g-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; overflow-wrap: anywhere; }
+.g-status { padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+.g-status.missing { background: #2a2e37; color: var(--muted); }
+.g-status.draft { background: #5a4a1e; color: #ffd98a; }
+.g-status.approved { background: #1f4a2a; color: #9be3a5; }
+.g-status.rejected { background: #5a2220; color: #ffb0aa; }
+.g-status.bad { background: #8a1f1b; color: #fff; }
+.g-views { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.g-view { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); max-width: 100%; }
+.g-view img { max-width: 100%; height: auto; background: repeating-conic-gradient(#2a2e37 0 25%, #20232a 0 50%) 0 0 / 12px 12px; }
+.g-note { font-size: 12px; color: #ffb0aa; margin-top: 6px; }
+.g-wide { grid-column: 1 / -1; }
+.g-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }

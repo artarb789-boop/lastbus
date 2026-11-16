@@ -22,41 +22,6 @@ const SOURCE_LABEL: Record<string, string> = {
   nemesis: "Заклятый соперник",
 };
 
-const W = 900;
-const H = 170;
-
-function scene(store: Store, c: CombatState): string {
-  const { state, content } = store;
-  const px = 110;
-  const ex = px + 170 + c.distance * 160;
-  const bands = (["contact", "near", "mid", "far"] as RangeBand[])
-    .map((b, i) => {
-      const x0 = px + 170 + Math.max(0, i - 0.5) * 160;
-      const x1 = px + 170 + Math.min(3, i + 0.5) * 160;
-      return `<rect class="band ${bandOf(c.distance) === b ? "active" : ""}" x="${x0}" y="138" width="${x1 - x0}" height="20"/><text class="band-label" x="${(x0 + x1) / 2}" y="152">${BAND_LABEL[b]}</text>`;
-    })
-    .join("");
-  const busShape = (x: number, cls: string, label: string, hp: number, max: number, flip: boolean) => `
-    <g class="vehicle ${cls}" transform="translate(${x},78)">
-      <rect x="-80" y="-30" width="160" height="50" rx="8"/>
-      ${[-55, -25, 5, 35].map((wx) => `<rect class="window" x="${flip ? -wx - 20 : wx}" y="-22" width="20" height="16" rx="2"/>`).join("")}
-      <circle class="wheel" cx="-50" cy="22" r="10"/><circle class="wheel" cx="50" cy="22" r="10"/>
-      <text class="vlabel" y="-40">${esc(label)}</text>
-      <rect class="hpbg" x="-80" y="-62" width="160" height="7"/>
-      <rect class="hp" x="-80" y="-62" width="${(160 * Math.max(0, hp)) / max}" height="7"/>
-    </g>`;
-  const tether = c.status.tethered > 0 || c.enemy.status.tethered > 0 ? `<line class="tether" x1="${px + 80}" y1="78" x2="${ex - 80}" y2="78"/>` : "";
-  return `
-    <svg class="scene" viewBox="0 0 ${W} ${H}">
-      <rect class="road" x="0" y="100" width="${W}" height="36"/>
-      <line class="lane" x1="0" y1="118" x2="${W}" y2="118"/>
-      ${bands}
-      ${tether}
-      ${busShape(px, "player", "Ваш автобус", state.hull.hp, state.hull.max, false)}
-      ${busShape(ex, "enemy", t(content, c.enemy.name), c.enemy.hull.hp, c.enemy.hull.max, true)}
-    </svg>`;
-}
-
 export function renderCombat(store: Store): string {
   const { state, content, ui } = store;
   if (state.phase.type !== "combat") return "";
@@ -137,7 +102,6 @@ export function renderCombat(store: Store): string {
           <span class="muted">${seconds} с · пробел — пауза</span>
         </div>
       </div>
-      ${scene(store, c)}
       <div class="combat-grid">
         <div class="col">
           <h3>Ваши стволы</h3>

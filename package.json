@@ -12,11 +12,15 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit && tsc --noEmit -p game",
     "sim": "tsx sim/cli.ts",
-    "validate": "tsx tools/validate-data.ts"
+    "validate": "tsx tools/validate-data.ts && tsx tools/check-art.ts",
+    "pixelize": "tsx tools/pixelize.ts",
+    "art:check": "tsx tools/check-art.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/pngjs": "^6.0.5",
     "ajv": "^8.20.0",
+    "pngjs": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^5.4.21",

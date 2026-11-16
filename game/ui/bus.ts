@@ -1,5 +1,8 @@
 /** Салон (вид сверху) и снаряжение автобуса. */
 import { coveredSeats, findNode, fits, installCost, itemDef, occupant, repairCost } from "../../core";
+import { artImg, personUrl } from "../art/images";
+import { driverSprite, personSprite } from "../art/people";
+import { spriteUrl } from "../art/pixel";
 import type { Store } from "../store";
 import { bar, cmdAttr, esc, itemName, SLOT, uiAttr } from "./text";
 
@@ -31,12 +34,15 @@ export function renderBus(store: Store): string {
       }
       let who = "";
       if (seat.role === "driver") {
-        who = `<span class="person driver ${state.driver.status}">🧑‍✈️</span>`;
+        const img = spriteUrl(driverSprite(state.driver.status === "wounded"));
+        who = `<span class="person driver ${state.driver.status}"><img class="px" src="${img}" alt="водитель"></span>`;
       } else {
         const p = occupant(state, seat.id);
         if (p) {
           const sel = ui.selectedPassenger === p.id ? "selected" : "";
-          who = `<span class="person ${p.status} ${sel}" title="Билет: ещё ${p.ticket.stopsLeft} из ${p.ticket.stopsTotal} остановок">${p.ticket.stopsLeft}</span>`;
+          const wounded = p.status === "wounded";
+          const img = personUrl(p.look, wounded) ?? spriteUrl(personSprite(p.look, wounded));
+          who = `<span class="person ${p.status} ${sel}" title="Билет: ещё ${p.ticket.stopsLeft} из ${p.ticket.stopsTotal} остановок"><img class="px" src="${img}" alt=""><b class="ticket">${p.ticket.stopsLeft}</b></span>`;
         }
       }
       const cls = ["seat", `role-${seat.role}`, exposed ? "exposed" : "", covered.has(seat.id) ? "covered" : ""].join(" ");
@@ -67,7 +73,7 @@ export function renderGear(store: Store): string {
       let actions = "";
       if (inst) {
         const def = itemDef(content, inst);
-        body = `${esc(itemName(content, inst.itemId))} ${bar(inst.durability, def.durability, inst.durability <= 0 ? "bad" : "")} ${inst.durability}/${def.durability}`;
+        body = `${artImg(`items/${inst.itemId}.png`, 1, "item-icon")}${esc(itemName(content, inst.itemId))} ${bar(inst.durability, def.durability, inst.durability <= 0 ? "bad" : "")} ${inst.durability}/${def.durability}`;
         if (canUninstall) actions += `<button ${cmdAttr({ type: "uninstall", slotId: slot.id })}>Снять</button>`;
         if (atStop && inst.durability < def.durability) {
           actions += `<button ${cmdAttr({ type: "repair", uid: inst.uid })}>Чинить (🔩${repairCost(content, inst, garage)})</button>`;
@@ -96,7 +102,7 @@ export function renderGear(store: Store): string {
             let actions = "";
             if (atStop || inShop) actions += `<button ${uiAttr("selectItem", inst.uid)}>${sel ? "Отменить" : "Установить…"}</button>`;
             if (inShop) actions += `<button ${cmdAttr({ type: "sell", uid: inst.uid })}>Продать (🪙${Math.floor(def.price * content.balance.sellMult)})</button>`;
-            return `<li class="${sel ? "selected" : ""}">${esc(itemName(content, inst.itemId))} <span class="muted">${inst.durability}/${def.durability}</span> ${actions}</li>`;
+            return `<li class="${sel ? "selected" : ""}">${artImg(`items/${inst.itemId}.png`, 1, "item-icon")}${esc(itemName(content, inst.itemId))} <span class="muted">${inst.durability}/${def.durability}</span> ${actions}</li>`;
           })
           .join("")}</ul>`;
 

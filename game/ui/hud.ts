@@ -1,4 +1,5 @@
 import { capacity, driverDef, isLeaking, RESOURCE_KINDS, tankMax } from "../../core";
+import { artImg } from "../art/images";
 import type { Store } from "../store";
 import { bar, esc, RES, SYSTEM, t, uiAttr } from "./text";
 
@@ -7,7 +8,7 @@ export function renderHud(store: Store): string {
   const r = state.resources;
   const res = RESOURCE_KINDS.map((k) => {
     const value = k === "fuel" ? `${r.fuel}/${tankMax(state, content)}` : String(r[k]);
-    return `<span class="res" title="${RES[k].label}">${RES[k].icon} ${value}</span>`;
+    return `<span class="res" title="${RES[k].label}">${artImg(`resources/${k}.png`, 2, "res-icon", RES[k].label) || RES[k].icon} ${value}</span>`;
   }).join("");
 
   const sys = (name: string, hp: number, max: number, extra = "") =>
